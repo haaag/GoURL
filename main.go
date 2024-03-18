@@ -25,6 +25,14 @@ var (
 	printFlag   bool
 )
 
+// logErrAndExit logs the error and exits the program.
+func logErrAndExit(err error) {
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s: %s\n", AppName, err)
+		os.Exit(1)
+	}
+}
+
 // setLoggingLevel sets the logging level based on the verbose flag.
 func setLoggingLevel(verboseFlag *bool) {
 	if *verboseFlag {
@@ -38,12 +46,14 @@ func setLoggingLevel(verboseFlag *bool) {
 	log.SetOutput(silentLogger.Writer())
 }
 
+// findURLs finds all URLs in a string
 func findURLs(line string) []string {
 	urlRegex := `(((http|https|gopher|gemini|ftp|ftps|git)://|www\.)[a-zA-Z0-9.]*[:;a-zA-Z0-9./+@<span class="math-inline">&%?</span>\#=_~-]*)|((magnet:\\?xt=urn:btih:)[a-zA-Z0-9]*)`
 	re := regexp.MustCompile(urlRegex)
 	return re.FindAllString(line, -1)
 }
 
+// copyURL copies the selected URL to the clipboard
 func copyURL(url string) error {
 	err := clipboard.WriteAll(url)
 	if err != nil {
@@ -54,6 +64,7 @@ func copyURL(url string) error {
 	return nil
 }
 
+// openURL opens the selected URL in the default browser
 func openURL(url string) error {
 	log.Printf("opening URL %s with '%s'\n", url, browser)
 
@@ -67,6 +78,8 @@ func openURL(url string) error {
 	return nil
 }
 
+// getEnv gets an environment variable from the environment,
+// falling back to a default value if it is not set
 func getEnv(key, def string) string {
 	if v, ok := os.LookupEnv(key); ok {
 		return v
@@ -75,11 +88,13 @@ func getEnv(key, def string) string {
 	return def
 }
 
+// Menu is a struct that holds the command and arguments for menu
 type Menu struct {
 	Command   string
 	Arguments []string
 }
 
+// Run runs the menu command and returns the selected item
 func (m *Menu) Run(s string) (string, error) {
 	log.Println("running menu:", m.Command, m.Arguments)
 	cmd := exec.Command(m.Command, m.Arguments...)
@@ -95,7 +110,7 @@ func (m *Menu) Run(s string) (string, error) {
 
 	err = cmd.Start()
 	if err != nil {
-		return "", fmt.Errorf("error starting dmenu: %w", err)
+		return "", fmt.Errorf("error starting menu: %w", err)
 	}
 
 	output, err := io.ReadAll(stdoutPipe)
@@ -119,11 +134,12 @@ var menu = Menu{
 	Command: "dmenu",
 	Arguments: []string{
 		"-i",
-		"-p", "Select URL>",
+		"-p", "URL>",
 		"-l", "10",
 	},
 }
 
+// getURLs gets all URLs from STDIN
 func getURLs() []string {
 	var urls []string
 	scanner := bufio.NewScanner(os.Stdin)
@@ -143,11 +159,12 @@ func getURLs() []string {
 	return urls
 }
 
+// selectURL runs menu and returns the selected URL
 func selectURL(urls []string) string {
 	itemsString := strings.Join(urls, "\n")
 	output, err := menu.Run(itemsString)
 	if err != nil {
-		log.Printf("error running dmenu: %v\n", err)
+		log.Printf("error running menu: %v\n", err)
 		return ""
 	}
 
@@ -189,6 +206,7 @@ func main() {
 	flag.BoolVar(&printFlag, "print", false, "print selected URL")
 	flag.BoolVar(&printFlag, "p", false, "print selected URL")
 
+	flag.BoolVar(&verboseFlag, "verbose", false, "verbose mode")
 	flag.StringVar(&dmenuArgs, "args", "", "additional args for dmenu")
 	flag.Usage = printUsage
 	flag.Parse()
@@ -224,14 +242,14 @@ func main() {
 
 	if copyFlag {
 		if err := copyURL(url); err != nil {
-			log.Printf("error copying URL: %v\n", err)
+			logErrAndExit(err)
 		}
 		return
 	}
 
 	if openFlag {
 		if err := openURL(url); err != nil {
-			log.Printf("error opening URL: %v\n", err)
+			logErrAndExit(err)
 		}
 		return
 	}
