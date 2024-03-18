@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"io"
@@ -120,6 +121,25 @@ var menu = Menu{
 		"-p", "Select URL>",
 		"-l", "10",
 	},
+}
+
+func getURLs() []string {
+	var urls []string
+	scanner := bufio.NewScanner(os.Stdin)
+	index := 1
+	for scanner.Scan() {
+		line := scanner.Text()
+		found := findURLs(line)
+		if len(found) > 0 {
+			for _, url := range found {
+				urls = append(urls, fmt.Sprintf("[%d] %s", index, url))
+				index++
+			}
+		}
+	}
+
+	log.Println("found", len(urls), "URLs")
+	return urls
 }
 
 func selectURL(urls []string) string {
