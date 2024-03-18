@@ -16,11 +16,25 @@ import (
 const AppName = "go-extract-url"
 
 var (
-	browser   string
-	copyFlag  bool
-	dmenuArgs string
-	openFlag  bool
+	browser     string
+	copyFlag    bool
+	dmenuArgs   string
+	openFlag    bool
+	verboseFlag bool
 )
+
+// setLoggingLevel sets the logging level based on the verbose flag.
+func setLoggingLevel(verboseFlag *bool) {
+	if *verboseFlag {
+		log.SetFlags(log.LstdFlags | log.Lshortfile)
+		log.Println("verbose mode: on")
+
+		return
+	}
+
+	silentLogger := log.New(io.Discard, "", 0)
+	log.SetOutput(silentLogger.Writer())
+}
 
 func findURLs(line string) []string {
 	urlRegex := `(((http|https|gopher|gemini|ftp|ftps|git)://|www\.)[a-zA-Z0-9.]*[:;a-zA-Z0-9./+@<span class="math-inline">&%?</span>\#=_~-]*)|((magnet:\\?xt=urn:btih:)[a-zA-Z0-9]*)`
@@ -138,6 +152,7 @@ Optional arguments:
   -c, --copy         copy to clipboard
   -o, --open         open in default browser
   -a, --args         additional args for dmenu
+  -v, --verbose      verbose mode
   -h, --help         show this message
 `, AppName)
 }
@@ -145,9 +160,22 @@ Optional arguments:
 func main() {
 	flag.BoolVar(&copyFlag, "copy", false, "copy to clipboard")
 	flag.BoolVar(&copyFlag, "c", false, "copy to clipboard")
+
 	flag.BoolVar(&openFlag, "open", false, "open in browser")
 	flag.BoolVar(&openFlag, "o", false, "open in browser")
+
+	flag.BoolVar(&verboseFlag, "verbose", false, "verbose mode")
+	flag.BoolVar(&verboseFlag, "v", false, "verbose mode")
+
 	flag.StringVar(&dmenuArgs, "args", "", "additional args for dmenu")
 	flag.Usage = printUsage
 	flag.Parse()
+
+	setLoggingLevel(&verboseFlag)
+
+	if !copyFlag && !openFlag {
+		flag.Usage()
+		return
+	}
+
 }
