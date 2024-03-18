@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"os"
 	"os/exec"
 	"regexp"
 
@@ -46,6 +47,18 @@ func openURL(url string) error {
 	}
 
 	return nil
+}
+
+func getEnv(key, def string) string {
+	if v, ok := os.LookupEnv(key); ok {
+		return v
+	}
+
+	return def
+}
+
+func init() {
+	browser = getEnv("BROWSER", "xdg-open")
 }
 
 func printUsage() {
