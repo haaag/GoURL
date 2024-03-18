@@ -146,13 +146,13 @@ func selectURL(urls []string) string {
 	itemsString := strings.Join(urls, "\n")
 	output, err := menu.Run(itemsString)
 	if err != nil {
-		log.Printf("Error running dmenu: %v\n", err)
+		log.Printf("error running dmenu: %v\n", err)
 		return ""
 	}
 
 	selectedStr := strings.Trim(output, "\n")
 	if selectedStr == "" {
-		log.Println("No URL selected")
+		log.Println("no URL selected")
 		return ""
 	}
 
@@ -198,4 +198,34 @@ func main() {
 		return
 	}
 
+	urls := getURLs()
+	if len(urls) == 0 {
+		log.Println("No URLs found")
+		return
+	}
+
+	if dmenuArgs != "" {
+		menu.Arguments = append(menu.Arguments, strings.Split(dmenuArgs, " ")...)
+	}
+
+	selected := selectURL(urls)
+	if selected == "" {
+		return
+	}
+
+	url := strings.Split(selected, " ")[1]
+
+	if copyFlag {
+		if err := copyURL(url); err != nil {
+			log.Printf("error copying URL: %v\n", err)
+		}
+		return
+	}
+
+	if openFlag {
+		if err := openURL(url); err != nil {
+			log.Printf("error opening URL: %v\n", err)
+		}
+		return
+	}
 }
