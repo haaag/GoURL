@@ -22,6 +22,7 @@ var (
 	dmenuArgs   string
 	openFlag    bool
 	verboseFlag bool
+	printFlag   bool
 )
 
 // setLoggingLevel sets the logging level based on the verbose flag.
@@ -169,11 +170,12 @@ func printUsage() {
   Extract URLs from STDIN and show them in dmenu
 
 Optional arguments:
-  -c, --copy         copy to clipboard
-  -o, --open         open in default browser
-  -a, --args         additional args for dmenu
-  -v, --verbose      verbose mode
-  -h, --help         show this message
+  -c, --copy        copy to clipboard
+  -o, --open        open in default browser
+  -a, --args        additional args for dmenu
+  -p, --print       print selected URL 
+  -v, --verbose     verbose mode
+  -h, --help        show this message
 `, AppName)
 }
 
@@ -184,8 +186,8 @@ func main() {
 	flag.BoolVar(&openFlag, "open", false, "open in browser")
 	flag.BoolVar(&openFlag, "o", false, "open in browser")
 
-	flag.BoolVar(&verboseFlag, "verbose", false, "verbose mode")
-	flag.BoolVar(&verboseFlag, "v", false, "verbose mode")
+	flag.BoolVar(&printFlag, "print", false, "print selected URL")
+	flag.BoolVar(&printFlag, "p", false, "print selected URL")
 
 	flag.StringVar(&dmenuArgs, "args", "", "additional args for dmenu")
 	flag.Usage = printUsage
@@ -193,7 +195,7 @@ func main() {
 
 	setLoggingLevel(&verboseFlag)
 
-	if !copyFlag && !openFlag {
+	if flag.NFlag() == 0 && flag.NArg() == 0 {
 		flag.Usage()
 		return
 	}
@@ -214,6 +216,11 @@ func main() {
 	}
 
 	url := strings.Split(selected, " ")[1]
+
+	if printFlag {
+		fmt.Println(url)
+		return
+	}
 
 	if copyFlag {
 		if err := copyURL(url); err != nil {
