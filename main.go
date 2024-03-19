@@ -39,6 +39,14 @@ func logErrAndExit(err error) {
 	}
 }
 
+func printInfo(s string) {
+	if !verboseFlag {
+		fmt.Fprintf(os.Stdout, "%s: %s\n", appName, s)
+	} else {
+		log.Print(s)
+	}
+}
+
 // setLoggingLevel sets the logging level based on the verbose flag.
 func setLoggingLevel(verboseFlag *bool) {
 	if *verboseFlag {
@@ -63,6 +71,12 @@ func findURLs(line string) []string {
 		urls = append(urls, url)
 	}
 	return urls
+}
+
+// printURL prints the selected URL
+func printURL(url string) error {
+	fmt.Println(url)
+	return nil
 }
 
 // copyURL copies the selected URL to the clipboard
@@ -206,10 +220,10 @@ func getURLs(limit int, indexed bool) []string {
 	return urls
 }
 
-// selectURL runs menu and returns the selected URL
-func selectURL(urls []string) string {
+// selectItem runs menu and returns the selected URL
+func selectItem(urls []string) string {
 	itemsString := strings.Join(urls, "\n")
-	output, err := menu.Run(itemsString)
+	output, err := dmenu.show(itemsString)
 	if err != nil {
 		log.Printf("error running menu: %v\n", err)
 		return ""
@@ -217,21 +231,17 @@ func selectURL(urls []string) string {
 
 	selectedStr := strings.Trim(output, "\n")
 	if selectedStr == "" {
-		log.Println("no URL selected")
+		printInfo("no <URL> selected")
 		return ""
 	}
 
 	return selectedStr
 }
 
-func init() {
-	browser = getEnv("BROWSER", "xdg-open")
-}
-
 func printUsage() {
 	fmt.Printf(`Usage: %s [flags]
 
-  Extract URLs from STDIN and show them in dmenu
+  Extract URLs from STDIN
 
 Optional arguments:
   -c, --copy        copy to clipboard
@@ -242,10 +252,32 @@ Optional arguments:
   -d, --dump        dumps URLs to local <file>
   -v, --verbose     verbose mode
   -h, --help        show this message
-`, AppName)
+`, appName)
 }
 
-func main() {
+func handleURLAction(url string) {
+	if indexFlag {
+		split := strings.Split(url, " ")
+		if len(split) > 1 {
+			url = split[1]
+		}
+	}
+
+	actions := map[bool]func(url string) error{
+		copyFlag:  copyURL,
+		openFlag:  openURL,
+		printFlag: printURL,
+	}
+
+	if action, ok := actions[true]; ok {
+		logErrAndExit(action(url))
+		os.Exit(0)
+	}
+}
+
+func init() {
+	browser = getEnv("BROWSER", "xdg-open")
+
 	flag.BoolVar(&copyFlag, "copy", false, "copy to clipboard")
 	flag.BoolVar(&copyFlag, "c", false, "copy to clipboard")
 
@@ -269,12 +301,12 @@ func main() {
 	flag.Usage = printUsage
 	flag.Parse()
 
-	setLoggingLevel(&verboseFlag)
-
+func main() {
 	if flag.NFlag() == 0 && flag.NArg() == 0 {
 		flag.Usage()
 		return
 	}
+	setLoggingLevel(&verboseFlag)
 
 	urls := getURLs()
 	if len(urls) == 0 {
@@ -305,10 +337,10 @@ func main() {
 		os.Exit(0)
 	}
 
-	if openFlag {
-		if err := openURL(url); err != nil {
-			logErrAndExit(err)
-		}
+	url := selectItem(urls)
+	if url == "" {
 		return
 	}
+
+	handleURLAction(url)
 }
