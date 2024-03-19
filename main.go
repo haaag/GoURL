@@ -1,3 +1,6 @@
+// GoURL
+//
+// Extract URLs from STDIN
 package main
 
 import (
@@ -14,21 +17,22 @@ import (
 	"github.com/atotto/clipboard"
 )
 
-const AppName = "go-extract-url"
+const appName = "gourl"
 
 var (
-	browser     string
-	copyFlag    bool
-	dmenuArgs   string
-	openFlag    bool
-	verboseFlag bool
-	printFlag   bool
+	browser      string
+	copyFlag     bool
+	limitFlag    int
+	menuArgsFlag string
+	openFlag     bool
+	printFlag    bool
+	verboseFlag  bool
 )
 
 // logErrAndExit logs the error and exits the program.
 func logErrAndExit(err error) {
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s: %s\n", AppName, err)
+		fmt.Fprintf(os.Stderr, "%s: %s\n", appName, err)
 		os.Exit(1)
 	}
 }
@@ -145,6 +149,9 @@ func getURLs() []string {
 	scanner := bufio.NewScanner(os.Stdin)
 	index := 1
 	for scanner.Scan() {
+		if limitFlag > 0 && len(urls) >= limitFlag {
+			break
+		}
 		line := scanner.Text()
 		found := findURLs(line)
 		if len(found) > 0 {
@@ -191,6 +198,7 @@ Optional arguments:
   -o, --open        open in default browser
   -a, --args        additional args for dmenu
   -p, --print       print selected URL 
+  -l, --limit       limit number of URLs
   -v, --verbose     verbose mode
   -h, --help        show this message
 `, AppName)
@@ -205,6 +213,9 @@ func main() {
 
 	flag.BoolVar(&printFlag, "print", false, "print selected URL")
 	flag.BoolVar(&printFlag, "p", false, "print selected URL")
+
+	flag.IntVar(&limitFlag, "limit", 0, "limit number of URLs")
+	flag.IntVar(&limitFlag, "l", 0, "limit number of URLs")
 
 	flag.BoolVar(&verboseFlag, "verbose", false, "verbose mode")
 	flag.StringVar(&dmenuArgs, "args", "", "additional args for dmenu")

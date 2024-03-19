@@ -1,7 +1,7 @@
 # go-extract-url - Extract URLs from STDIN and show them in dmenu
 
 
-NAME = go-extract-url
+NAME = gourl
 SRC = ./main.go
 BIN = ./bin/$(NAME)
 
@@ -39,7 +39,7 @@ clean: ## Clean
 lint: vet
 	@echo '>> Linting code'
 	@golangci-lint run ./...
-	@codespell .
+	@codespell ./main.go
 
 .PHONY: check
 check: ## Lint all
