@@ -56,7 +56,13 @@ func setLoggingLevel(verboseFlag *bool) {
 func findURLs(line string) []string {
 	urlRegex := `(((http|https|gopher|gemini|ftp|ftps|git)://|www\.)[a-zA-Z0-9.]*[:;a-zA-Z0-9./+@<span class="math-inline">&%?</span>\#=_~-]*)|((magnet:\\?xt=urn:btih:)[a-zA-Z0-9]*)`
 	re := regexp.MustCompile(urlRegex)
-	return re.FindAllString(line, -1)
+	matches := re.FindAllString(line, -1)
+	urls := make([]string, 0)
+	for _, match := range matches {
+		url := strings.Split(match, " ")[0]
+		urls = append(urls, url)
+	}
+	return urls
 }
 
 // copyURL copies the selected URL to the clipboard
