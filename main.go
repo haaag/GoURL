@@ -23,6 +23,7 @@ var (
 	browser      string
 	copyFlag     bool
 	dumpFileFlag string
+	indexFlag    bool
 	limitFlag    int
 	menuArgsFlag string
 	openFlag     bool
@@ -172,19 +173,24 @@ var menu = Menu{
 }
 
 // getURLs gets all URLs from STDIN
-func getURLs() []string {
+func getURLs(limit int, indexed bool) []string {
 	var urls []string
 	scanner := bufio.NewScanner(os.Stdin)
 	index := 1
+
 	for scanner.Scan() {
-		if limitFlag > 0 && len(urls) >= limitFlag {
+		if limit > 0 && len(urls) >= limit {
 			break
 		}
 		line := scanner.Text()
 		found := findURLs(line)
 		if len(found) > 0 {
 			for _, url := range found {
-				urls = append(urls, fmt.Sprintf("[%d] %s", index, url))
+				if indexed {
+					urls = append(urls, fmt.Sprintf("[%d] %s", index, url))
+				} else {
+					urls = append(urls, url)
+				}
 				index++
 			}
 		}
@@ -246,6 +252,8 @@ func main() {
 	flag.IntVar(&limitFlag, "limit", 0, "limit number of URLs")
 	flag.IntVar(&limitFlag, "l", 0, "limit number of URLs")
 
+	flag.BoolVar(&indexFlag, "index", false, "indexed menu")
+
 	flag.BoolVar(&verboseFlag, "verbose", false, "verbose mode")
 	flag.BoolVar(&verboseFlag, "v", false, "verbose mode")
 
@@ -279,9 +287,9 @@ func main() {
 
 	url := strings.Split(selected, " ")[1]
 
-	if printFlag {
-		fmt.Println(url)
-		return
+	urls := getURLs(limitFlag, indexFlag)
+	if len(urls) == 0 {
+		logErrAndExit(fmt.Errorf("no <URLs> found"))
 	}
 
 	if dumpFileFlag != "" {
