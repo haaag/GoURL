@@ -22,6 +22,7 @@ const appName = "gourl"
 var (
 	browser      string
 	copyFlag     bool
+	dumpFileFlag string
 	limitFlag    int
 	menuArgsFlag string
 	openFlag     bool
@@ -65,6 +66,33 @@ func copyURL(url string) error {
 	}
 
 	log.Print("text copied to clipboard: ", url)
+	return nil
+}
+
+// dumpURLs dumps the URLs to local file
+func dumpURLs(urls []string, filename string) error {
+	if filename == "" {
+		return nil
+	}
+
+	if len(urls) == 0 {
+		return nil
+	}
+
+	f, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+
+	for _, url := range urls {
+		if _, err := f.WriteString(url + "\n"); err != nil {
+			return err
+		}
+	}
+
+	defer f.Close()
+
+	printInfo(fmt.Sprintf("dumping %d URLs to '%s'", len(urls), filename))
 	return nil
 }
 
@@ -199,6 +227,7 @@ Optional arguments:
   -a, --args        additional args for dmenu
   -p, --print       print selected URL 
   -l, --limit       limit number of URLs
+  -d, --dump        dumps URLs to local <file>
   -v, --verbose     verbose mode
   -h, --help        show this message
 `, AppName)
@@ -218,7 +247,11 @@ func main() {
 	flag.IntVar(&limitFlag, "l", 0, "limit number of URLs")
 
 	flag.BoolVar(&verboseFlag, "verbose", false, "verbose mode")
-	flag.StringVar(&dmenuArgs, "args", "", "additional args for dmenu")
+	flag.BoolVar(&verboseFlag, "v", false, "verbose mode")
+
+	flag.StringVar(&dumpFileFlag, "dump", "", "dump URLs to FILE")
+	flag.StringVar(&dumpFileFlag, "d", "", "dump URLs to FILE")
+
 	flag.Usage = printUsage
 	flag.Parse()
 
@@ -251,11 +284,11 @@ func main() {
 		return
 	}
 
-	if copyFlag {
-		if err := copyURL(url); err != nil {
+	if dumpFileFlag != "" {
+		if err := dumpURLs(urls, dumpFileFlag); err != nil {
 			logErrAndExit(err)
 		}
-		return
+		os.Exit(0)
 	}
 
 	if openFlag {
