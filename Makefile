@@ -1,4 +1,4 @@
-# go-extract-url - Extract URLs from STDIN and show them in dmenu
+# gourl - Extract URLs from STDIN
 
 
 NAME = gourl

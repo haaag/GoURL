@@ -31,7 +31,7 @@ var (
 	verboseFlag  bool
 )
 
-// logErrAndExit logs the error and exits the program.
+// logErrAndExit logs the error and exits the program
 func logErrAndExit(err error) {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s: %s\n", appName, err)
@@ -147,8 +147,39 @@ type Menu struct {
 	Arguments []string
 }
 
-// Run runs the menu command and returns the selected item
-func (m *Menu) Run(s string) (string, error) {
+// prompt sets the prompt for the menu
+func (m *Menu) prompt(s string) *Menu {
+	m.Arguments = append(m.Arguments, "-p", s)
+	return m
+}
+
+// addArgs adds additional arguments to the menu
+func (m *Menu) addArgs(menuArgs string) *Menu {
+	if menuArgs == "" {
+		return m
+	}
+
+	args := strings.Split(menuArgs, " ")
+	m.Arguments = append(m.Arguments, args...)
+	return m
+}
+
+// handlePrompt handles the menu prompt
+func (m *Menu) handlePrompt() {
+	switch {
+	case copyFlag:
+		m.prompt("CopyURL>")
+	case openFlag:
+		m.prompt("OpenURL>")
+	case printFlag:
+		m.prompt("PrintURL>")
+	default:
+		m.prompt("GoURL>")
+	}
+}
+
+// show runs the menu command and returns the selected item
+func (m *Menu) show(s string) (string, error) {
 	log.Println("running menu:", m.Command, m.Arguments)
 	cmd := exec.Command(m.Command, m.Arguments...)
 
@@ -173,7 +204,7 @@ func (m *Menu) Run(s string) (string, error) {
 
 	err = cmd.Wait()
 	if err != nil {
-		return "", fmt.Errorf("user hit scape: %w", err)
+		return "", err
 	}
 
 	outputStr := string(output)
@@ -183,11 +214,10 @@ func (m *Menu) Run(s string) (string, error) {
 	return outputStr, nil
 }
 
-var menu = Menu{
+var dmenu = Menu{
 	Command: "dmenu",
 	Arguments: []string{
 		"-i",
-		"-p", "URL>",
 		"-l", "10",
 	},
 }
@@ -298,8 +328,10 @@ func init() {
 	flag.StringVar(&dumpFileFlag, "dump", "", "dump URLs to FILE")
 	flag.StringVar(&dumpFileFlag, "d", "", "dump URLs to FILE")
 
+	flag.StringVar(&menuArgsFlag, "args", "", "additional args for dmenu")
 	flag.Usage = printUsage
 	flag.Parse()
+}
 
 func main() {
 	if flag.NFlag() == 0 && flag.NArg() == 0 {
@@ -308,22 +340,8 @@ func main() {
 	}
 	setLoggingLevel(&verboseFlag)
 
-	urls := getURLs()
-	if len(urls) == 0 {
-		log.Println("No URLs found")
-		return
-	}
-
-	if dmenuArgs != "" {
-		menu.Arguments = append(menu.Arguments, strings.Split(dmenuArgs, " ")...)
-	}
-
-	selected := selectURL(urls)
-	if selected == "" {
-		return
-	}
-
-	url := strings.Split(selected, " ")[1]
+	dmenu.addArgs(menuArgsFlag)
+	dmenu.handlePrompt()
 
 	urls := getURLs(limitFlag, indexFlag)
 	if len(urls) == 0 {
