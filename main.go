@@ -5,6 +5,7 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -12,12 +13,17 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"runtime"
 	"strings"
 
 	"github.com/atotto/clipboard"
 )
 
-const appName = "gourl"
+var (
+	appName       = "gourl"
+	appVersion    = "0.0.1"
+	errNoURLFound = errors.New("no urls found")
+)
 
 var (
 	browser      string
@@ -29,6 +35,7 @@ var (
 	openFlag     bool
 	printFlag    bool
 	verboseFlag  bool
+	versionFlag  bool
 )
 
 func printUsage() {
@@ -335,6 +342,11 @@ func handleURLAction(url string) {
 		logErrAndExit(action(url))
 		os.Exit(0)
 	}
+	return merged
+}
+
+func version() string {
+	return fmt.Sprintf("%s v%s %s/%s\n", appName, appVersion, runtime.GOOS, runtime.GOARCH)
 }
 
 func init() {
@@ -357,12 +369,18 @@ func init() {
 	flag.BoolVar(&verboseFlag, "verbose", false, "verbose mode")
 	flag.BoolVar(&verboseFlag, "v", false, "verbose mode")
 
-	flag.StringVar(&dumpFileFlag, "dump", "", "dump URLs to FILE")
-	flag.StringVar(&dumpFileFlag, "d", "", "dump URLs to FILE")
+	flag.BoolVar(&versionFlag, "version", false, "version info")
 
 	flag.StringVar(&menuArgsFlag, "args", "", "additional args for dmenu")
 	flag.Usage = printUsage
 	flag.Parse()
+
+	if versionFlag {
+		fmt.Print(version())
+		os.Exit(0)
+	}
+
+	setLoggingLevel(&verboseFlag)
 }
 
 func main() {
