@@ -26,15 +26,14 @@ var (
 )
 
 var (
-	browser      string
 	copyFlag     bool
-	dumpFileFlag string
-	indexFlag    bool
-	limitFlag    int
-	menuArgsFlag string
 	openFlag     bool
-	printFlag    bool
+	limitFlag    int
+	indexFlag    bool
+	menuArgsFlag string
+	testFlag     bool
 	verboseFlag  bool
+	xdgOpen      string
 	versionFlag  bool
 )
 
@@ -46,12 +45,9 @@ func printUsage() {
 Optional arguments:
   -c, --copy          Copy to clipboard
   -o, --open          Open in default browser (xdg-open)
-  -p, --print         Print selected URL 
   -l, --limit         Limit number of URLs
   -i, --index         Add index to URLs found
-  -m, --menu          Show URLs/emails in menu
   -a, --menu-args     Additional args for dmenu
-  -s, --save          Save found URLs to <file>
   -v, --verbose       Verbose mode
   -h, --help          Show this message
 `, appName)
@@ -350,28 +346,29 @@ func version() string {
 }
 
 func init() {
-	browser = getEnv("BROWSER", "xdg-open")
+	xdgOpen = "xdg-open"
 
-	flag.BoolVar(&copyFlag, "copy", false, "copy to clipboard")
 	flag.BoolVar(&copyFlag, "c", false, "copy to clipboard")
+	flag.BoolVar(&copyFlag, "copy", false, "copy to clipboard")
 
-	flag.BoolVar(&openFlag, "open", false, "open in browser")
 	flag.BoolVar(&openFlag, "o", false, "open in browser")
+	flag.BoolVar(&openFlag, "open", false, "open in browser")
 
-	flag.BoolVar(&printFlag, "print", false, "print selected URL")
-	flag.BoolVar(&printFlag, "p", false, "print selected URL")
-
-	flag.IntVar(&limitFlag, "limit", 0, "limit number of URLs")
 	flag.IntVar(&limitFlag, "l", 0, "limit number of URLs")
+	flag.IntVar(&limitFlag, "limit", 0, "limit number of URLs")
 
+	flag.BoolVar(&verboseFlag, "v", false, "verbose mode")
+	flag.BoolVar(&verboseFlag, "verbose", false, "verbose mode")
+
+	flag.BoolVar(&indexFlag, "i", false, "indexed menu")
 	flag.BoolVar(&indexFlag, "index", false, "indexed menu")
 
-	flag.BoolVar(&verboseFlag, "verbose", false, "verbose mode")
-	flag.BoolVar(&verboseFlag, "v", false, "verbose mode")
+	flag.StringVar(&menuArgsFlag, "a", "", "additional args for dmenu")
+	flag.StringVar(&menuArgsFlag, "menu-args", "", "additional args for dmenu")
 
 	flag.BoolVar(&versionFlag, "version", false, "version info")
 
-	flag.StringVar(&menuArgsFlag, "args", "", "additional args for dmenu")
+	flag.BoolVar(&testFlag, "test", false, "find emails")
 	flag.Usage = printUsage
 	flag.Parse()
 
