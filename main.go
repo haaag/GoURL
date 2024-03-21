@@ -37,6 +37,8 @@ var (
 	versionFlag  bool
 )
 
+type finderFunc func(string) []string
+
 func printUsage() {
 	fmt.Printf(`Usage: %s [flags]
 
@@ -108,10 +110,10 @@ func findURLs(line string) []string {
 	return urls
 }
 
-// printURL prints the selected URL
-func printURL(url string) error {
-	fmt.Println(url)
-	return nil
+func outputData(urls []string) {
+	for _, url := range urls {
+		fmt.Fprintln(os.Stdout, url)
+	}
 }
 
 // copyURL copies the selected URL to the clipboard
@@ -125,38 +127,11 @@ func copyURL(url string) error {
 	return nil
 }
 
-// dumpURLs dumps the URLs to local file
-func dumpURLs(urls []string, filename string) error {
-	if filename == "" {
-		return nil
-	}
-
-	if len(urls) == 0 {
-		return nil
-	}
-
-	f, err := os.Create(filename)
-	if err != nil {
-		return err
-	}
-
-	for _, url := range urls {
-		if _, err := f.WriteString(url + "\n"); err != nil {
-			return err
-		}
-	}
-
-	defer f.Close()
-
-	printInfo(fmt.Sprintf("dumping %d URLs to '%s'", len(urls), filename))
-	return nil
-}
-
-// openURL opens the selected URL in the default browser
+// openURL opens the selected URL in the
 func openURL(url string) error {
-	log.Printf("opening URL %s with '%s'\n", url, browser)
+	log.Printf("opening URL %s with '%s'\n", url, xdgOpen)
 
-	var cmd = exec.Command(browser, url)
+	cmd := exec.Command(xdgOpen, url)
 
 	err := cmd.Start()
 	if err != nil {
@@ -166,16 +141,6 @@ func openURL(url string) error {
 	return nil
 }
 
-// getEnv gets an environment variable from the environment,
-// falling back to a default value if it is not set
-func getEnv(key, def string) string {
-	if v, ok := os.LookupEnv(key); ok {
-		return v
-	}
-
-	return def
-}
-
 // Menu is a struct that holds the command and arguments for menu
 type Menu struct {
 	Command   string
@@ -183,33 +148,29 @@ type Menu struct {
 }
 
 // prompt sets the prompt for the menu
-func (m *Menu) prompt(s string) *Menu {
+func (m *Menu) prompt(s string) {
 	m.Arguments = append(m.Arguments, "-p", s)
-	return m
 }
 
 // addArgs adds additional arguments to the menu
-func (m *Menu) addArgs(menuArgs string) *Menu {
+func (m *Menu) addArgs(menuArgs string) {
 	if menuArgs == "" {
-		return m
+		return
 	}
 
 	args := strings.Split(menuArgs, " ")
 	m.Arguments = append(m.Arguments, args...)
-	return m
 }
 
 // handlePrompt handles the menu prompt
 func (m *Menu) handlePrompt() {
 	switch {
-	case copyFlag:
-		m.prompt("CopyURL>")
 	case openFlag:
 		m.prompt("OpenURL>")
-	case printFlag:
-		m.prompt("PrintURL>")
+	case copyFlag:
+		m.prompt("CopyURL>")
 	default:
-		m.prompt("GoURL>")
+		m.prompt("GoURLs>")
 	}
 }
 
@@ -257,40 +218,60 @@ var dmenu = Menu{
 	},
 }
 
-// getURLs gets all URLs from STDIN
-func getURLs(limit int, indexed bool) []string {
-	var urls []string
-	scanner := bufio.NewScanner(os.Stdin)
-	index := 1
-
+func processInputData(r io.Reader, limit int) []string {
+	var data []string
+	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
-		if limit > 0 && len(urls) >= limit {
+		if limit > 0 && len(data) >= limit {
 			break
 		}
 		line := scanner.Text()
-		found := findURLs(line)
+		data = append(data, line)
+	}
+	return data
+}
+
+func scanURLs(data []string, indexed bool, find finderFunc, results chan []string) {
+	var items []string
+	index := 1
+	for _, line := range data {
+		found := find(line)
 		if len(found) > 0 {
-			for _, url := range found {
+			for _, item := range found {
 				if indexed {
-					urls = append(urls, fmt.Sprintf("[%d] %s", index, url))
+					items = append(items, fmt.Sprintf("[%d] %s", index, item))
 				} else {
-					urls = append(urls, url)
+					items = append(items, item)
 				}
 				index++
 			}
 		}
 	}
-
-	log.Println("found", len(urls), "URLs")
-	return urls
+	results <- items
 }
 
-// selectItem runs menu and returns the selected URL
-func selectItem(urls []string) string {
+func getURLsFrom(r io.Reader) ([]string, error) {
+	resultsCh := make(chan []string)
+
+	data := processInputData(r, limitFlag)
+	go scanURLs(data, indexFlag, findURLs, resultsCh)
+	go scanURLs(data, indexFlag, findEmails, resultsCh)
+	emails := <-resultsCh
+	urls := <-resultsCh
+
+	allURLs := mergeSlices(emails, urls)
+	if len(allURLs) == 0 {
+		return nil, errNoURLFound
+	}
+
+	return allURLs, nil
+}
+
+// selectURL runs menu and returns the selected URL
+func selectURL(urls []string, menu *Menu) string {
 	itemsString := strings.Join(urls, "\n")
-	output, err := dmenu.show(itemsString)
+	output, err := menu.show(itemsString)
 	if err != nil {
-		log.Printf("error running menu: %v\n", err)
 		return ""
 	}
 
@@ -303,40 +284,25 @@ func selectItem(urls []string) string {
 	return selectedStr
 }
 
-func printUsage() {
-	fmt.Printf(`Usage: %s [flags]
-
-  Extract URLs from STDIN
-
-Optional arguments:
-  -c, --copy        copy to clipboard
-  -o, --open        open in default browser
-  -a, --args        additional args for dmenu
-  -p, --print       print selected URL 
-  -l, --limit       limit number of URLs
-  -d, --dump        dumps URLs to local <file>
-  -v, --verbose     verbose mode
-  -h, --help        show this message
-`, appName)
-}
-
 func handleURLAction(url string) {
-	if indexFlag {
-		split := strings.Split(url, " ")
-		if len(split) > 1 {
-			url = split[1]
-		}
-	}
-
 	actions := map[bool]func(url string) error{
-		copyFlag:  copyURL,
-		openFlag:  openURL,
-		printFlag: printURL,
+		copyFlag: copyURL,
+		openFlag: openURL,
 	}
 
 	if action, ok := actions[true]; ok {
 		logErrAndExit(action(url))
 		os.Exit(0)
+	} else {
+		// No action, just print
+		fmt.Println(url)
+	}
+}
+
+func mergeSlices(data ...[]string) []string {
+	var merged []string
+	for _, d := range data {
+		merged = append(merged, d...)
 	}
 	return merged
 }
