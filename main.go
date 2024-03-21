@@ -31,13 +31,10 @@ var (
 	limitFlag    int
 	indexFlag    bool
 	menuArgsFlag string
-	testFlag     bool
 	verboseFlag  bool
 	xdgOpen      string
 	versionFlag  bool
 )
-
-type finderFunc func(string) []string
 
 func printUsage() {
 	fmt.Printf(`Usage: %s [flags]
@@ -46,7 +43,7 @@ func printUsage() {
 
 Optional arguments:
   -c, --copy          Copy to clipboard
-  -o, --open          Open in default browser (xdg-open)
+  -o, --open          Open in xdg-open
   -l, --limit         Limit number of URLs
   -i, --index         Add index to URLs found
   -a, --menu-args     Additional args for dmenu
@@ -71,9 +68,9 @@ func printInfo(s string) {
 	}
 }
 
-// setLoggingLevel sets the logging level based on the verbose flag.
-func setLoggingLevel(verboseFlag *bool) {
-	if *verboseFlag {
+// setVerboseLevel sets the logging level based on the verbose flag.
+func setVerboseLevel() {
+	if verboseFlag {
 		log.SetFlags(log.LstdFlags | log.Lshortfile)
 		log.Println("verbose mode: on")
 
@@ -110,6 +107,20 @@ func findURLs(line string) []string {
 	return urls
 }
 
+func removeIdx(s string) string {
+	if !indexFlag {
+		return s
+	}
+
+	split := strings.Split(s, " ")
+	if len(split) == 1 {
+		return s
+	}
+
+	return split[1]
+}
+
+// outputData outputs the URLs to STDOUT
 func outputData(urls []string) {
 	for _, url := range urls {
 		fmt.Fprintln(os.Stdout, url)
@@ -153,12 +164,12 @@ func (m *Menu) prompt(s string) {
 }
 
 // addArgs adds additional arguments to the menu
-func (m *Menu) addArgs(menuArgs string) {
-	if menuArgs == "" {
+func (m *Menu) addArgs() {
+	if menuArgsFlag == "" {
 		return
 	}
 
-	args := strings.Split(menuArgs, " ")
+	args := strings.Split(menuArgsFlag, " ")
 	m.Arguments = append(m.Arguments, args...)
 }
 
@@ -210,7 +221,7 @@ func (m *Menu) show(s string) (string, error) {
 	return outputStr, nil
 }
 
-var dmenu = Menu{
+var menu = Menu{
 	Command: "dmenu",
 	Arguments: []string{
 		"-i",
@@ -218,11 +229,11 @@ var dmenu = Menu{
 	},
 }
 
-func processInputData(r io.Reader, limit int) []string {
+func processInputData(r io.Reader) []string {
 	var data []string
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
-		if limit > 0 && len(data) >= limit {
+		if limitFlag > 0 && len(data) >= limitFlag {
 			break
 		}
 		line := scanner.Text()
@@ -231,44 +242,46 @@ func processInputData(r io.Reader, limit int) []string {
 	return data
 }
 
-func scanURLs(data []string, indexed bool, find finderFunc, results chan []string) {
+func scanItems(data []string, find func(string) []string) []string {
 	var items []string
 	index := 1
 	for _, line := range data {
 		found := find(line)
-		if len(found) > 0 {
-			for _, item := range found {
-				if indexed {
-					items = append(items, fmt.Sprintf("[%d] %s", index, item))
-				} else {
-					items = append(items, item)
-				}
-				index++
+		for _, item := range found {
+			if indexFlag {
+				item = fmt.Sprintf("[%d] %s", index, item)
 			}
+			items = append(items, item)
+			index++
 		}
 	}
-	results <- items
+	return items
+}
+
+func scanURLs(data []string, find func(string) []string, resultsCh chan []string) {
+	items := scanItems(data, find)
+	resultsCh <- items
 }
 
 func getURLsFrom(r io.Reader) ([]string, error) {
 	resultsCh := make(chan []string)
 
-	data := processInputData(r, limitFlag)
-	go scanURLs(data, indexFlag, findURLs, resultsCh)
-	go scanURLs(data, indexFlag, findEmails, resultsCh)
+	data := processInputData(r)
+	go scanURLs(data, findURLs, resultsCh)
+	go scanURLs(data, findEmails, resultsCh)
 	emails := <-resultsCh
 	urls := <-resultsCh
 
-	allURLs := mergeSlices(emails, urls)
-	if len(allURLs) == 0 {
+	if len(urls) == 0 && len(emails) == 0 {
 		return nil, errNoURLFound
 	}
 
+	allURLs := mergeSlices(emails, urls)
 	return allURLs, nil
 }
 
 // selectURL runs menu and returns the selected URL
-func selectURL(urls []string, menu *Menu) string {
+func selectURL(urls []string) string {
 	itemsString := strings.Join(urls, "\n")
 	output, err := menu.show(itemsString)
 	if err != nil {
@@ -291,7 +304,7 @@ func handleURLAction(url string) {
 	}
 
 	if action, ok := actions[true]; ok {
-		logErrAndExit(action(url))
+		logErrAndExit(action(removeIdx(url)))
 		os.Exit(0)
 	} else {
 		// No action, just print
@@ -334,7 +347,6 @@ func init() {
 
 	flag.BoolVar(&versionFlag, "version", false, "version info")
 
-	flag.BoolVar(&testFlag, "test", false, "find emails")
 	flag.Usage = printUsage
 	flag.Parse()
 
@@ -343,32 +355,25 @@ func init() {
 		os.Exit(0)
 	}
 
-	setLoggingLevel(&verboseFlag)
+	setVerboseLevel()
 }
 
 func main() {
-	if flag.NFlag() == 0 && flag.NArg() == 0 {
-		flag.Usage()
+	urls, err := getURLsFrom(os.Stdin)
+	if err != nil {
+		logErrAndExit(err)
+	}
+
+	// If no action flags are passed, just print the URLs
+	if !copyFlag && !openFlag && menuArgsFlag == "" {
+		outputData(urls)
 		return
 	}
-	setLoggingLevel(&verboseFlag)
 
-	dmenu.addArgs(menuArgsFlag)
-	dmenu.handlePrompt()
+	menu.addArgs()
+	menu.handlePrompt()
 
-	urls := getURLs(limitFlag, indexFlag)
-	if len(urls) == 0 {
-		logErrAndExit(fmt.Errorf("no <URLs> found"))
-	}
-
-	if dumpFileFlag != "" {
-		if err := dumpURLs(urls, dumpFileFlag); err != nil {
-			logErrAndExit(err)
-		}
-		os.Exit(0)
-	}
-
-	url := selectItem(urls)
+	url := selectURL(urls)
 	if url == "" {
 		return
 	}
