@@ -1,4 +1,4 @@
-module github.com/haaag/go-extract-url
+module github.com/haaag/GoURL
 
 go 1.21.3
 

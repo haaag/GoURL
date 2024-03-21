@@ -1,5 +1,5 @@
 # gourl - Extract URLs from STDIN
-
+# See LICENSE file for copyright and license details.
 
 NAME = gourl
 SRC = ./main.go

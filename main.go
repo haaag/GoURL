@@ -31,6 +31,25 @@ var (
 	verboseFlag  bool
 )
 
+func printUsage() {
+	fmt.Printf(`Usage: %s [flags]
+
+  Extract URLs from STDIN
+
+Optional arguments:
+  -c, --copy          Copy to clipboard
+  -o, --open          Open in default browser (xdg-open)
+  -p, --print         Print selected URL 
+  -l, --limit         Limit number of URLs
+  -i, --index         Add index to URLs found
+  -m, --menu          Show URLs/emails in menu
+  -a, --menu-args     Additional args for dmenu
+  -s, --save          Save found URLs to <file>
+  -v, --verbose       Verbose mode
+  -h, --help          Show this message
+`, appName)
+}
+
 // logErrAndExit logs the error and exits the program
 func logErrAndExit(err error) {
 	if err != nil {
@@ -58,6 +77,19 @@ func setLoggingLevel(verboseFlag *bool) {
 
 	silentLogger := log.New(io.Discard, "", 0)
 	log.SetOutput(silentLogger.Writer())
+}
+
+// findEmails finds all emails in a string
+func findEmails(line string) []string {
+	emailRegex := `\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b`
+	re := regexp.MustCompile(emailRegex)
+	matches := re.FindAllString(line, -1)
+	emails := make([]string, 0)
+	for _, match := range matches {
+		email := strings.Split(match, " ")[0]
+		emails = append(emails, fmt.Sprintf("mailto:%s", email))
+	}
+	return emails
 }
 
 // findURLs finds all URLs in a string
