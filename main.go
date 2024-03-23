@@ -37,18 +37,20 @@ var (
 )
 
 func printUsage() {
-	fmt.Printf(`Usage: %s [flags]
+	fmt.Printf(`Extract URLs from STDIN
 
-  Extract URLs from STDIN
+Usage: 
+  %s [options]
 
-Optional arguments:
-  -c, --copy          Copy to clipboard
-  -o, --open          Open in xdg-open
-  -l, --limit         Limit number of URLs
-  -i, --index         Add index to URLs found
-  -a, --menu-args     Additional args for dmenu
-  -v, --verbose       Verbose mode
-  -h, --help          Show this message
+Options:
+  -c, --copy       copy to clipboard
+  -o, --open       open in xdg-open
+  -l, --limit      limit number of URLs
+  -i, --index      add index to URLs found
+  -a, --menu-args  additional args for dmenu
+  -V, --version    output version information
+  -v, --verbose    verbose mode
+  -h, --help       show this message
 `, appName)
 }
 
@@ -131,7 +133,7 @@ func outputData(urls []string) {
 func copyURL(url string) error {
 	err := clipboard.WriteAll(url)
 	if err != nil {
-		return err
+		return fmt.Errorf("error copying to clipboard: %w", err)
 	}
 
 	log.Print("text copied to clipboard: ", url)
@@ -146,7 +148,7 @@ func openURL(url string) error {
 
 	err := cmd.Start()
 	if err != nil {
-		return err
+		return fmt.Errorf("error opening URL: %w", err)
 	}
 
 	return nil
@@ -211,7 +213,7 @@ func (m *Menu) show(s string) (string, error) {
 
 	err = cmd.Wait()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error waiting for menu: %w", err)
 	}
 
 	outputStr := string(output)
@@ -229,6 +231,7 @@ var menu = Menu{
 	},
 }
 
+// processInputData processes the input from stdin
 func processInputData(r io.Reader) []string {
 	var data []string
 	scanner := bufio.NewScanner(r)
@@ -242,6 +245,7 @@ func processInputData(r io.Reader) []string {
 	return data
 }
 
+// scanItems scans the input data and returns the found match
 func scanItems(data []string, find func(string) []string) []string {
 	var items []string
 	index := 1
@@ -258,6 +262,7 @@ func scanItems(data []string, find func(string) []string) []string {
 	return items
 }
 
+// scanURLs scans the input data and returns the found URLs
 func scanURLs(data []string, find func(string) []string, resultsCh chan []string) {
 	items := scanItems(data, find)
 	resultsCh <- items
@@ -306,10 +311,10 @@ func handleURLAction(url string) {
 	if action, ok := actions[true]; ok {
 		logErrAndExit(action(removeIdx(url)))
 		os.Exit(0)
-	} else {
-		// No action, just print
-		fmt.Println(url)
 	}
+
+	// No action, just output
+	fmt.Println(url)
 }
 
 func mergeSlices(data ...[]string) []string {
@@ -345,7 +350,8 @@ func init() {
 	flag.StringVar(&menuArgsFlag, "a", "", "additional args for dmenu")
 	flag.StringVar(&menuArgsFlag, "menu-args", "", "additional args for dmenu")
 
-	flag.BoolVar(&versionFlag, "version", false, "version info")
+	flag.BoolVar(&versionFlag, "V", false, "output version information")
+	flag.BoolVar(&versionFlag, "version", false, "output version information")
 
 	flag.Usage = printUsage
 	flag.Parse()
