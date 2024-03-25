@@ -19,6 +19,11 @@ import (
 	"github.com/atotto/clipboard"
 )
 
+const (
+	urlRegex   = `(((http|https|gopher|gemini|ftp|ftps|git)://|www\\.)[a-zA-Z0-9.]*[:;a-zA-Z0-9./+@$&%?$\#=_~-]*)|((magnet:\\?xt=urn:btih:)[a-zA-Z0-9]*)`
+	emailRegex = `\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b`
+)
+
 var (
 	appName       = "gourl"
 	appVersion    = "0.0.1"
@@ -26,14 +31,15 @@ var (
 )
 
 var (
-	copyFlag     bool
-	openFlag     bool
-	limitFlag    int
-	indexFlag    bool
-	menuArgsFlag string
-	verboseFlag  bool
-	xdgOpen      string
-	versionFlag  bool
+	customRegexFlag string
+	copyFlag        bool
+	openFlag        bool
+	limitFlag       int
+	indexFlag       bool
+	menuArgsFlag    string
+	verboseFlag     bool
+	xdgOpen         string
+	versionFlag     bool
 )
 
 func printUsage() {
@@ -43,14 +49,15 @@ Usage:
   %s [options]
 
 Options:
-  -c, --copy       copy to clipboard
-  -o, --open       open in xdg-open
-  -l, --limit      limit number of URLs
-  -i, --index      add index to URLs found
-  -a, --menu-args  additional args for dmenu
-  -V, --version    output version information
-  -v, --verbose    verbose mode
-  -h, --help       show this message
+  -c, --copy        Copy to clipboard
+  -o, --open        Open with xdg-open
+  -E, --regex       Custom regex search
+  -l, --limit       Limit number of items
+  -i, --index       Add index to URLs found
+  -a, --args        Additional args for dmenu
+  -V, --version     Output version information
+  -v, --verbose     Verbose mode
+  -h, --help        Show this message
 `, appName)
 }
 
@@ -83,30 +90,21 @@ func setVerboseLevel() {
 	log.SetOutput(silentLogger.Writer())
 }
 
-// findEmails finds all emails in a string
-func findEmails(line string) []string {
-	emailRegex := `\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b`
-	re := regexp.MustCompile(emailRegex)
-	matches := re.FindAllString(line, -1)
-	emails := make([]string, 0)
-	for _, match := range matches {
-		email := strings.Split(match, " ")[0]
-		emails = append(emails, fmt.Sprintf("mailto:%s", email))
+// newRegexMatcherWithPrefix creates a regex function
+func newRegexMatcherWithPrefix(regex, prefix string) func(string) []string {
+	re := regexp.MustCompile(regex)
+	return func(line string) []string {
+		matches := re.FindAllString(line, -1)
+		urls := make([]string, 0)
+		for _, match := range matches {
+			url := strings.Split(match, " ")[0]
+			if prefix != "" {
+				url = fmt.Sprintf("%s%s", prefix, url)
+			}
+			urls = append(urls, url)
+		}
+		return urls
 	}
-	return emails
-}
-
-// findURLs finds all URLs in a string
-func findURLs(line string) []string {
-	urlRegex := `(((http|https|gopher|gemini|ftp|ftps|git)://|www\\.)[a-zA-Z0-9.]*[:;a-zA-Z0-9./+@$&%?$\#=_~-]*)|((magnet:\\?xt=urn:btih:)[a-zA-Z0-9]*)`
-	re := regexp.MustCompile(urlRegex)
-	matches := re.FindAllString(line, -1)
-	urls := make([]string, 0)
-	for _, match := range matches {
-		url := strings.Split(match, " ")[0]
-		urls = append(urls, url)
-	}
-	return urls
 }
 
 func removeIdx(s string) string {
@@ -268,21 +266,25 @@ func scanURLs(data []string, find func(string) []string, resultsCh chan []string
 	resultsCh <- items
 }
 
-func getURLsFrom(r io.Reader) ([]string, error) {
+func getURLsFrom(r io.Reader, finders ...func(string) []string) ([]string, error) {
 	resultsCh := make(chan []string)
-
 	data := processInputData(r)
-	go scanURLs(data, findURLs, resultsCh)
-	go scanURLs(data, findEmails, resultsCh)
-	emails := <-resultsCh
-	urls := <-resultsCh
+	results := make([]string, 0)
 
-	if len(urls) == 0 && len(emails) == 0 {
-		return nil, errNoURLFound
+	// Start finders
+	for _, f := range finders {
+		go scanURLs(data, f, resultsCh)
 	}
 
-	allURLs := mergeSlices(emails, urls)
-	return allURLs, nil
+	// Wait for all finders to finish
+	for range finders {
+		results = append(results, <-resultsCh...)
+	}
+
+	if len(results) == 0 {
+		return nil, errNoURLFound
+	}
+	return results, nil
 }
 
 // selectURL runs menu and returns the selected URL
@@ -317,12 +319,43 @@ func handleURLAction(url string) {
 	fmt.Println(url)
 }
 
-func mergeSlices(data ...[]string) []string {
-	var merged []string
-	for _, d := range data {
-		merged = append(merged, d...)
+func findWithCustomRegex(r io.Reader, regex string) []string {
+	finder := newRegexMatcherWithPrefix(regex, "")
+	items, err := getURLsFrom(r, finder)
+	if err != nil {
+		logErrAndExit(err)
 	}
-	return merged
+
+	return items
+}
+
+func findItems(r io.Reader) []string {
+	findURL := newRegexMatcherWithPrefix(urlRegex, "")
+	findEmail := newRegexMatcherWithPrefix(emailRegex, "mailto:")
+	items, err := getURLsFrom(r, findURL, findEmail)
+	if err != nil {
+		logErrAndExit(err)
+	}
+
+	return items
+}
+
+func handleItems(items []string) {
+	// If no action flags are passed, just print the URLs
+	if !copyFlag && !openFlag && menuArgsFlag == "" {
+		outputData(items)
+		return
+	}
+
+	menu.addArgs()
+	menu.handlePrompt()
+
+	url := selectURL(items)
+	if url == "" {
+		return
+	}
+
+	handleURLAction(url)
 }
 
 func version() string {
@@ -347,6 +380,9 @@ func init() {
 	flag.BoolVar(&indexFlag, "i", false, "indexed menu")
 	flag.BoolVar(&indexFlag, "index", false, "indexed menu")
 
+	flag.StringVar(&customRegexFlag, "E", "", "custom regex")
+	flag.StringVar(&customRegexFlag, "regex", "", "custom regex")
+
 	flag.StringVar(&menuArgsFlag, "a", "", "additional args for dmenu")
 	flag.StringVar(&menuArgsFlag, "menu-args", "", "additional args for dmenu")
 
@@ -365,24 +401,13 @@ func init() {
 }
 
 func main() {
-	urls, err := getURLsFrom(os.Stdin)
-	if err != nil {
-		logErrAndExit(err)
+	var items []string
+
+	if customRegexFlag != "" {
+		items = findWithCustomRegex(os.Stdin, customRegexFlag)
+	} else {
+		items = findItems(os.Stdin)
 	}
 
-	// If no action flags are passed, just print the URLs
-	if !copyFlag && !openFlag && menuArgsFlag == "" {
-		outputData(urls)
-		return
-	}
-
-	menu.addArgs()
-	menu.handlePrompt()
-
-	url := selectURL(urls)
-	if url == "" {
-		return
-	}
-
-	handleURLAction(url)
+	handleItems(items)
 }
