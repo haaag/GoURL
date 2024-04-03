@@ -261,6 +261,14 @@ func uniqueItems(input []string) []string {
 	return result
 }
 
+// addIndex adds an index to the URLs
+func addIndex(urls []string) []string {
+	for i, url := range urls {
+		urls[i] = fmt.Sprintf("[%d] %s", i+1, url)
+	}
+	return urls
+}
+
 // scanItems scans the input data and returns the found match
 func scanItems(data []string, find func(string) []string) []string {
 	var items []string
@@ -268,9 +276,6 @@ func scanItems(data []string, find func(string) []string) []string {
 	for _, line := range data {
 		found := find(line)
 		for _, item := range found {
-			if indexFlag {
-				item = fmt.Sprintf("[%d] %s", index, item)
-			}
 			items = append(items, item)
 			index++
 		}
@@ -387,6 +392,10 @@ func main() {
 	}
 
 	urls = uniqueItems(urls)
+
+	if indexFlag {
+		urls = addIndex(urls)
+	}
 
 	// If no action flags are passed, just print the URLs
 	if !copyFlag && !openFlag && menuArgsFlag == "" {
