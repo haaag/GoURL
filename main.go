@@ -101,7 +101,7 @@ func findEmails(line string) []string {
 
 // findURLs finds all URLs in a string
 func findURLs(line string) []string {
-	urlRegex := `(((http|https|gopher|gemini|ftp|ftps|git)://|www\\.)[a-zA-Z0-9.]*[:;a-zA-Z0-9./+@$&%?$\#=_~-]*)|((magnet:\\?xt=urn:btih:)[a-zA-Z0-9]*)`
+	urlRegex := `(((http|https|gopher|gemini|ftp|ftps|git)://|www\.)[a-zA-Z0-9.]*[:;a-zA-Z0-9./+@$&%?$\#=_~-]*)`
 	re := regexp.MustCompile(urlRegex)
 	matches := re.FindAllString(line, -1)
 	urls := make([]string, 0)
