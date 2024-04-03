@@ -19,6 +19,9 @@ import (
 	"github.com/atotto/clipboard"
 )
 
+// [TODO):
+// - [X] output unique items
+
 var (
 	appName       = "gourl"
 	appVersion    = "0.0.1"
@@ -245,6 +248,19 @@ func processInputData(r io.Reader) []string {
 	return data
 }
 
+// uniqueItems removes duplicates from a slice
+func uniqueItems(input []string) []string {
+	seen := make(map[string]bool)
+	var result []string
+	for _, ok := range input {
+		if !seen[ok] {
+			seen[ok] = true
+			result = append(result, ok)
+		}
+	}
+	return result
+}
+
 // scanItems scans the input data and returns the found match
 func scanItems(data []string, find func(string) []string) []string {
 	var items []string
@@ -369,6 +385,8 @@ func main() {
 	if err != nil {
 		logErrAndExit(err)
 	}
+
+	urls = uniqueItems(urls)
 
 	// If no action flags are passed, just print the URLs
 	if !copyFlag && !openFlag && menuArgsFlag == "" {
