@@ -26,7 +26,7 @@ const (
 
 var (
 	appName       = "gourl"
-	appVersion    = "0.0.1"
+	appVersion    = "0.1.1"
 	errNoURLFound = errors.New("no urls found")
 )
 
@@ -54,7 +54,7 @@ Options:
   -E, --regex       Custom regex search
   -l, --limit       Limit number of items
   -i, --index       Add index to URLs found
-  -a, --args        Additional args for dmenu
+  -a, --args        Args for dmenu
   -V, --version     Output version information
   -v, --verbose     Verbose mode
   -h, --help        Show this message
@@ -256,7 +256,7 @@ func uniqueItems(input []string) []string {
 	return result
 }
 
-// addIndex adds an index to the URLs
+// addIndex adds an index to the items
 func addIndex(items []string) []string {
 	for i, url := range items {
 		items[i] = fmt.Sprintf("[%d] %s", i+1, url)
