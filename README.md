@@ -31,13 +31,13 @@ Options:
   -v, --verbose     Verbose mode
   -h, --help        Show this message
 
-gourl -c < urls.txt
-cat urls.txt | gourl -c
+$ gourl -c < urls.txt
+$ cat urls.txt | gourl -c
 ```
 
 ### 🚩 Using `-E` flag
 
-The flag `-E` is for using custom regex, like in `grep`.
+The flag `-E` can be use for `custom regex`, like in `grep`.
 
 ```bash
 # list existing remotes and copy to system clipboard
@@ -48,3 +48,7 @@ git remote -v | gourl -E '((git|ssh|http(s)?)|(git@[\w\.]+))(:(//)?)([\w\.@\:/\-
 
 - [urlscan](https://github.com/firecat53/urlscan) - Designed to integrate with the "mutt" mailreader
 - [urlview](https://github.com/sigpipe/urlview) - Extract URLs from a text file and allow the user to select via a menu
+
+### 💬 And
+
+- Remember, never use `regex` :D
