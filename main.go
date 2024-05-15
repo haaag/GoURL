@@ -43,7 +43,8 @@ var (
 )
 
 func printUsage() {
-	fmt.Printf(`Extract URLs from STDIN
+	fmt.Printf(`%s
+Extract URLs from STDIN
 
 Usage: 
   %s [options]
@@ -58,7 +59,7 @@ Options:
   -V, --version     Output version information
   -v, --verbose     Verbose mode
   -h, --help        Show this message
-`, appName)
+`, version(), appName)
 }
 
 // logErrAndExit logs the error and exits the program
@@ -141,9 +142,7 @@ func copyURL(url string) error {
 // openURL opens the selected URL in the
 func openURL(url string) error {
 	log.Printf("opening URL %s with '%s'\n", url, xdgOpen)
-
 	cmd := exec.Command(xdgOpen, url)
-
 	err := cmd.Start()
 	if err != nil {
 		return fmt.Errorf("error opening URL: %w", err)

@@ -9,10 +9,7 @@ BIN = ./bin/$(NAME)
 
 all: full
 
-full: vet lint build
-
-help:	## This help dialog.
-	@grep -F -h "##" $(MAKEFILE_LIST) | grep -F -v fgrep | sed -e 's/\\$$//' | sed -e 's/##//'
+full: vet build
 
 build: vet ## Generate bin
 	@echo '>> Building $(NAME)'
