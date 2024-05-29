@@ -1,11 +1,14 @@
 # gourl - Extract URLs from STDIN
 # See LICENSE file for copyright and license details.
 
-NAME = gourl
-SRC = ./main.go
-BIN = ./bin/$(NAME)
+NAME 				=	gourl
+SRC 				=	./main.go
+GOBIN 			=	./bin
+BIN 				=	$(GOBIN)/$(NAME)
+PREFIX 			?= /usr/local
+INSTALL_DIR = $(PREFIX)/bin
 
-.PHONY: all build run vet clean
+.PHONY: all build run vet clean test full
 
 all: full
 
@@ -13,9 +16,9 @@ full: vet build
 
 build: vet ## Generate bin
 	@echo '>> Building $(NAME)'
-	@go build -ldflags "-s -w" -o $(BIN) $(SRC)
+	go build -ldflags "-s -w" -o $(BIN) $(SRC)
 
-debug: vet test ## Generate bin with debugger
+debug: vet ## Generate bin with debugger
 	@echo '>> Building $(NAME) with debugger'
 	@go build -gcflags="all=-N -l" -o $(BIN)-debug $(SRC)
 
@@ -29,16 +32,16 @@ vet: ## Lint
 
 clean: ## Clean
 	@echo '>> Cleaning up'
-	rm -f $(BIN)
+	rm -rf $(GOBIN)
 	go clean -cache
 
-.PHONY: lint
-lint: vet
-	@echo '>> Linting code'
-	@golangci-lint run ./...
-	@codespell ./main.go
+install: ## Install on system
+	mkdir -p $(INSTALL_DIR)
+	cp $(BIN) $(INSTALL_DIR)/$(NAME)
+	chmod 755 $(INSTALL_DIR)/$(NAME)
+	@echo '>> $(NAME) has been installed on your device'
 
-.PHONY: check
-check: ## Lint all
-	@echo '>> Linting everything'
-	@golangci-lint run -p bugs -p error
+uninstall: ## Uninstall from system
+	rm -rf $(GOBIN)
+	rm -rf $(INSTALL_DIR)/$(NAME)
+	@echo '>> $(NAME) has been removed from your device'
