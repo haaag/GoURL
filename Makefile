@@ -1,12 +1,12 @@
 # gourl - Extract URLs from STDIN
 # See LICENSE file for copyright and license details.
 
-NAME 				=	gourl
-SRC 				=	./main.go
-GOBIN 			=	./bin
-BIN 				=	$(GOBIN)/$(NAME)
-PREFIX 			?= /usr/local
-INSTALL_DIR = $(PREFIX)/bin
+NAME=gourl
+SRC=./main.go
+GOBIN=./bin
+BIN=$(GOBIN)/$(NAME)
+PREFIX?=/usr/local
+INSTALL_DIR=$(PREFIX)/bin
 
 .PHONY: all build run vet clean test full
 

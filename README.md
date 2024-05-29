@@ -1,6 +1,6 @@
 
 <div align="center">
-    <p style="font-size: 28px;"><b>🔗 GoURL</b></p>
+    <h1><b>🔗 GoURL</b></h1>
     <sub>✨ do <b>not</b> use <b>regex</b> 🤡</sub>
 <br>
 <br>
