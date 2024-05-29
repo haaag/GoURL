@@ -1,10 +1,17 @@
-![](https://img.shields.io/badge/Made%20with-Go-1f425f.svg)
 
-# 🔗 GoURL
+<div align="center">
+    <p style="font-size: 28px;"><b>🔗 GoURL</b></p>
+    <sub>✨ do <b>not</b> use <b>regex</b> 🤡</sub>
+<br>
+<br>
+
+[![MadeWithGo](https://img.shields.io/badge/Made%20with-Go-1f425f.svg)](https://go.dev/)
+</div>
+
 
 **GoURL** is a small `Golang` program that reads `URLs` and `email` addresses from standard input `(STDIN)`
 
-You can use any terminal that supports piping visible text to external programs. **_(st, alacritty, kitty, wezterm, etc)_**.
+You can use any **terminal** that supports piping visible text to external programs **_(alacritty, kitty, wezterm, etc)_**.
 
 I'm using [st](https://st.suckless.org/) terminal with [externalpipe](https://st.suckless.org/patches/externalpipe/) patch to `read/pipe` current visible text to this program.
 
@@ -16,6 +23,7 @@ Without flags, prints `URLs` found to standard output `(STDOUT)`, **_you can pip
 
 - Extract URLs from `STDIN`
 - Choose items with `dmenu`
+- Ignore `duplicates`
 - Copy to clipboard
 - Open with `xdg-open`
 - Custom regex search
@@ -26,19 +34,29 @@ Without flags, prints `URLs` found to standard output `(STDOUT)`, **_you can pip
 
 - [Go](https://golang.org/) `v1.21.3` or higher
 
-### 📦 Install
+### 📦 Build
 
 ```bash
+# clone the repo
 $ git clone 'https://github.com/haaag/GoURL' && cd GoURL
 
 # use make to build
 $ make
-
-# or use go build
-$ go build -o ./bin/gourl
 ```
 
-Binary can be found in `./bin`.
+<sub>Binary can be found in `GoURL/bin`.</sub>
+
+### 📦 Install `system wide`
+
+```bash
+# use make to build
+$ make
+
+# install on system
+$ sudo make install
+```
+
+<sub>Uninstall from system, use <b>sudo make uninstall</b></sub>
 
 ### 🚀 Usage
 
@@ -77,7 +95,3 @@ git remote -v | gourl -E '((git|ssh|http(s)?)|(git@[\w\.]+))(:(//)?)([\w\.@\:/\-
 
 - [urlscan](https://github.com/firecat53/urlscan) - Designed to integrate with the "mutt" mailreader
 - [urlview](https://github.com/sigpipe/urlview) - Extract URLs from a text file and allow the user to select via a menu
-
-### 💬 Remember
-
-- Never use `regex` 🤡
