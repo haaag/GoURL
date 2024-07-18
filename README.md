@@ -1,4 +1,3 @@
-
 <div align="center">
     <h1><b>🔗 GoURL</b></h1>
     <sub>✨ do <b>not</b> use <b>regex</b> 🤡</sub>
@@ -6,8 +5,8 @@
 <br>
 
 [![MadeWithGo](https://img.shields.io/badge/Made%20with-Go-1f425f.svg)](https://go.dev/)
-</div>
 
+</div>
 
 **GoURL** is a small `Golang` program that reads `URLs` and `email` addresses from standard input `(STDIN)`
 
@@ -73,6 +72,7 @@ Usage:
 Options:
   -c, --copy        Copy to clipboard
   -o, --open        Open with xdg-open
+  -n, --no-urls     Ignore URLs
   -e, --email       Extract emails
   -E, --regex       Custom regex search
   -l, --limit       Limit number of items
@@ -83,7 +83,18 @@ Options:
   -h, --help        Show this message
 
 $ gourl -c < urls.txt
+# or
 $ cat urls.txt | gourl -c
+
+# extract only emails
+$ gourl -n -e --limit 1 < data.txt
+# example@email.com
+
+# with index
+$ gourl -i -l 10 < urls.txt
+# [1] https://www.example.org
+# [2] https://www.example.com
+# ...
 ```
 
 ### 🚩 Using `-E` flag
