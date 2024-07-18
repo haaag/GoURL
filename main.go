@@ -27,7 +27,7 @@ const (
 
 var (
 	appName       = "gourl"
-	appVersion    = "0.1.1"
+	appVersion    = "0.1.2"
 	errNoURLFound = errors.New("no urls found")
 )
 
@@ -38,6 +38,7 @@ var (
 	indexFlag       bool
 	limitFlag       int
 	menuArgsFlag    string
+	noUrlsFlag      bool
 	openFlag        bool
 	verboseFlag     bool
 	versionFlag     bool
@@ -54,6 +55,7 @@ Usage:
 Options:
   -c, --copy        Copy to clipboard
   -o, --open        Open with xdg-open
+  -n, --no-urls     Ignore URLs
   -e, --email       Extract emails
   -E, --regex       Custom regex search
   -l, --limit       Limit number of items
@@ -390,8 +392,10 @@ func findWithCustomRegex(r io.Reader, regex string) []string {
 func findItems(r io.Reader) []string {
 	var finders []func(string) []string
 
-	// append <find URLs> function
-	finders = append(finders, newRegexMatcherWithPrefix(urlRegex, ""))
+	if !noUrlsFlag {
+		// append <find URLs> function
+		finders = append(finders, newRegexMatcherWithPrefix(urlRegex, ""))
+	}
 
 	if emailFlag {
 		// append <find emails> function
@@ -439,6 +443,8 @@ func init() {
 
 	flag.BoolVar(&emailFlag, "e", false, "extract emails")
 	flag.BoolVar(&emailFlag, "email", false, "extract emails")
+	flag.BoolVar(&noUrlsFlag, "n", false, "extract URLs")
+	flag.BoolVar(&noUrlsFlag, "no-urls", false, "extract URLs")
 
 	flag.IntVar(&limitFlag, "l", 0, "limit number of URLs")
 	flag.IntVar(&limitFlag, "limit", 0, "limit number of URLs")
