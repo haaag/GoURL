@@ -32,15 +32,16 @@ var (
 )
 
 var (
-	customRegexFlag string
 	copyFlag        bool
-	openFlag        bool
-	limitFlag       int
+	customRegexFlag string
+	emailFlag       bool
 	indexFlag       bool
+	limitFlag       int
 	menuArgsFlag    string
+	openFlag        bool
 	verboseFlag     bool
-	xdgOpen         string
 	versionFlag     bool
+	xdgOpen         string
 )
 
 func printUsage() {
@@ -53,6 +54,7 @@ Usage:
 Options:
   -c, --copy        Copy to clipboard
   -o, --open        Open with xdg-open
+  -e, --email       Extract emails
   -E, --regex       Custom regex search
   -l, --limit       Limit number of items
   -i, --index       Add index to URLs found
@@ -363,9 +365,17 @@ func findWithCustomRegex(r io.Reader, regex string) []string {
 }
 
 func findItems(r io.Reader) []string {
-	findURL := newRegexMatcherWithPrefix(urlRegex, "")
-	findEmail := newRegexMatcherWithPrefix(emailRegex, "mailto:")
-	items, err := getURLsFrom(r, findURL, findEmail)
+	var finders []func(string) []string
+
+	// append <find URLs> function
+	finders = append(finders, newRegexMatcherWithPrefix(urlRegex, ""))
+
+	if emailFlag {
+		// append <find emails> function
+		finders = append(finders, newRegexMatcherWithPrefix(emailRegex, "mailto:"))
+	}
+
+	items, err := getURLsFrom(r, finders...)
 	if err != nil {
 		logErrAndExit(err)
 	}
@@ -403,6 +413,9 @@ func init() {
 
 	flag.BoolVar(&openFlag, "o", false, "open in browser")
 	flag.BoolVar(&openFlag, "open", false, "open in browser")
+
+	flag.BoolVar(&emailFlag, "e", false, "extract emails")
+	flag.BoolVar(&emailFlag, "email", false, "extract emails")
 
 	flag.IntVar(&limitFlag, "l", 0, "limit number of URLs")
 	flag.IntVar(&limitFlag, "limit", 0, "limit number of URLs")
