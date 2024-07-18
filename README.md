@@ -46,17 +46,20 @@ $ make
 
 <sub>Binary can be found in `GoURL/bin`.</sub>
 
-### 📦 Install `system wide`
+### 📦 Installation
 
 ```bash
 # use make to build
 $ make
 
-# install on system
+# install on system wide
 $ sudo make install
+
+# or use a symlink
+$ ln -sf $PWD/bin/gourl ~/.local/bin/
 ```
 
-<sub>Uninstall from system, use <b>sudo make uninstall</b></sub>
+<sub>Uninstall from system, use <b>sudo make uninstall</b> or remove symlink with `rm ~/.local/bin/gourl`</sub>
 
 ### 🚀 Usage
 
