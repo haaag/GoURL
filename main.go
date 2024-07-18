@@ -75,7 +75,9 @@ func logErrAndExit(err error) {
 
 func printInfo(s string) {
 	if !verboseFlag {
-		fmt.Fprintf(os.Stdout, "%s: %s\n", appName, s)
+		if _, err := fmt.Fprintf(os.Stdout, "%s: %s\n", appName, s); err != nil {
+			logErrAndExit(err)
+		}
 	} else {
 		log.Print(s)
 	}
@@ -112,8 +114,11 @@ func setVerboseLevel() {
 func newRegexMatcherWithPrefix(regex, prefix string) func(string) []string {
 	re := regexp.MustCompile(regex)
 	return func(line string) []string {
-		matches := re.FindAllString(line, -1)
-		urls := make([]string, 0)
+		var (
+			matches = re.FindAllString(line, -1)
+			urls    = make([]string, 0)
+		)
+
 		for _, match := range matches {
 			url := strings.Split(match, " ")[0]
 			if prefix != "" {
@@ -285,9 +290,18 @@ func scanItems(data []string, find func(string) []string) []string {
 	index := 1
 	for _, line := range data {
 		found := find(line)
+		if len(found) == 0 {
+			continue
+		}
+
 		for _, item := range found {
 			items = append(items, item)
 			index++
+		}
+
+		// limit the number of items
+		if len(items) >= limitFlag {
+			break
 		}
 	}
 	return items
@@ -300,11 +314,18 @@ func scanURLs(data []string, find func(string) []string, resultsCh chan []string
 }
 
 func getURLsFrom(r io.Reader, finders ...func(string) []string) ([]string, error) {
-	resultsCh := make(chan []string)
-	chDone := make(chan bool)
+	var (
+		resultsCh = make(chan []string)
+		chDone    = make(chan bool)
+		data      = processInputData(r)
+		results   = make([]string, 0)
+	)
+
 	go spinner(chDone, "finding URLs...")
-	data := processInputData(r)
-	results := make([]string, 0)
+
+	if limitFlag == 0 {
+		limitFlag = len(data)
+	}
 
 	// Start finders
 	for _, f := range finders {
@@ -316,9 +337,11 @@ func getURLsFrom(r io.Reader, finders ...func(string) []string) ([]string, error
 		results = append(results, <-resultsCh...)
 	}
 	chDone <- true
+
 	if len(results) == 0 {
 		return nil, errNoURLFound
 	}
+
 	return results, nil
 }
 

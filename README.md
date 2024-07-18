@@ -73,6 +73,7 @@ Usage:
 Options:
   -c, --copy        Copy to clipboard
   -o, --open        Open with xdg-open
+  -e, --email       Extract emails
   -E, --regex       Custom regex search
   -l, --limit       Limit number of items
   -i, --index       Add index to URLs found
