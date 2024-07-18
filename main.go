@@ -15,6 +15,7 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/atotto/clipboard"
 )
@@ -78,6 +79,20 @@ func printInfo(s string) {
 	}
 }
 
+func spinner(done chan bool, mesg string) {
+	spinner := []string{" ", "▁", "▂", "▃", "▄", "▅", "▆", "▇"}
+	for i := 0; ; i++ {
+		select {
+		case <-done:
+			fmt.Printf("\r%-*s\r", len(mesg)+2, " ")
+			return
+		default:
+			fmt.Printf("\r%s %s", spinner[i%len(spinner)], mesg)
+			time.Sleep(110 * time.Millisecond)
+		}
+	}
+}
+
 // setVerboseLevel sets the logging level based on the verbose flag.
 func setVerboseLevel() {
 	if verboseFlag {
@@ -124,7 +139,9 @@ func removeIdx(s string) string {
 // outputData outputs the URLs to STDOUT
 func outputData(urls []string) {
 	for _, url := range urls {
-		fmt.Fprintln(os.Stdout, url)
+		if _, err := fmt.Fprintln(os.Stdout, url); err != nil {
+			logErrAndExit(err)
+		}
 	}
 }
 
@@ -233,9 +250,6 @@ func processInputData(r io.Reader) []string {
 	var data []string
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
-		if limitFlag > 0 && len(data) >= limitFlag {
-			break
-		}
 		line := scanner.Text()
 		data = append(data, line)
 	}
@@ -285,6 +299,8 @@ func scanURLs(data []string, find func(string) []string, resultsCh chan []string
 
 func getURLsFrom(r io.Reader, finders ...func(string) []string) ([]string, error) {
 	resultsCh := make(chan []string)
+	chDone := make(chan bool)
+	go spinner(chDone, "finding URLs...")
 	data := processInputData(r)
 	results := make([]string, 0)
 
@@ -297,7 +313,7 @@ func getURLsFrom(r io.Reader, finders ...func(string) []string) ([]string, error
 	for range finders {
 		results = append(results, <-resultsCh...)
 	}
-
+	chDone <- true
 	if len(results) == 0 {
 		return nil, errNoURLFound
 	}
