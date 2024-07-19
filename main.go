@@ -303,7 +303,6 @@ func scanURLs(data []string, find func(string) []string, resultsCh chan []string
 func getURLsFrom(r io.Reader, finders ...func(string) []string) ([]string, error) {
 	var (
 		resultsCh = make(chan []string)
-		chDone    = make(chan bool)
 		data      = processInputData(r)
 		results   = make([]string, 0)
 	)
