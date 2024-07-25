@@ -8,36 +8,51 @@ issues:
 linters:
   disable-all: true
   enable:
+    # - cyclop
     - dupl
+    - err113
     - errcheck
     - errname
     - errorlint
     - exportloopref
     - forcetypeassert
+    - funlen
     - goconst
     - gocritic
-    - err113
+    - godot
+    - gofumpt
     - goimports
-    # - gomnd
     - gosec
     - gosimple
     - ineffassign
+    - interfacebloat
+    - lll
     - makezero
     - misspell
+    # - mnd
+    - musttag
     - nakedret
     - nestif
     - nilerr
+    - nilnil
+    - nlreturn
     - noctx
     - nolintlint
+    - perfsprint
     - prealloc
     - predeclared
+    - reassign
     - revive
     - rowserrcheck
     - sqlclosecheck
     - staticcheck
+    # - stylecheck
+    - tagalign
+    # - testpackage
     - unconvert
     - unparam
     - unused
+    - usestdlibvars
     - wastedassign
     - whitespace
     - wrapcheck

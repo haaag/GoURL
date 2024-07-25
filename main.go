@@ -26,7 +26,7 @@ const (
 
 var (
 	appName       = "gourl"
-	appVersion    = "0.1.2"
+	appVersion    = "0.1.3"
 	errNoURLFound = errors.New("no urls found")
 )
 
@@ -41,7 +41,6 @@ var (
 	openFlag        bool
 	verboseFlag     bool
 	versionFlag     bool
-	xdgOpen         string
 )
 
 func printUsage() {
@@ -66,7 +65,7 @@ Options:
 `, version(), appName)
 }
 
-// logErrAndExit logs the error and exits the program
+// logErrAndExit logs the error and exits the program.
 func logErrAndExit(err error) {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s: %s\n", appName, err)
@@ -97,9 +96,10 @@ func setVerboseLevel() {
 	log.SetOutput(silentLogger.Writer())
 }
 
-// newRegexMatcherWithPrefix creates a regex function
+// newRegexMatcherWithPrefix creates a regex function.
 func newRegexMatcherWithPrefix(regex, prefix string) func(string) []string {
 	re := regexp.MustCompile(regex)
+
 	return func(line string) []string {
 		var (
 			matches = re.FindAllString(line, -1)
@@ -113,6 +113,7 @@ func newRegexMatcherWithPrefix(regex, prefix string) func(string) []string {
 			}
 			urls = append(urls, url)
 		}
+
 		return urls
 	}
 }
@@ -130,7 +131,7 @@ func removeIdx(s string) string {
 	return split[1]
 }
 
-// outputData outputs the URLs to STDOUT
+// outputData outputs the URLs to STDOUT.
 func outputData(urls []string) {
 	for _, url := range urls {
 		if _, err := fmt.Fprintln(os.Stdout, url); err != nil {
@@ -139,21 +140,39 @@ func outputData(urls []string) {
 	}
 }
 
-// copyURL copies the selected URL to the clipboard
+// copyURL copies the selected URL to the clipboard.
 func copyURL(url string) error {
 	err := clipboard.WriteAll(url)
 	if err != nil {
 		return fmt.Errorf("error copying to clipboard: %w", err)
 	}
-
 	log.Print("text copied to clipboard: ", url)
+
 	return nil
 }
 
-// openURL opens the selected URL in the
+// getOSArgs returns the correct arguments for the OS to open with the default
+// browser.
+func getOSArgs() []string {
+	var args []string
+	switch runtime.GOOS {
+	case "darwin":
+		args = []string{"open"}
+	case "windows":
+		args = []string{"cmd", "/c", "start"}
+	default:
+		args = []string{"xdg-open"}
+	}
+
+	return args
+}
+
+// openURL opens the selected URL on the system default browser.
 func openURL(url string) error {
-	log.Printf("opening URL %s with '%s'\n", url, xdgOpen)
-	cmd := exec.Command(xdgOpen, url)
+	args := getOSArgs()
+	args = append(args, url)
+	log.Printf("opening URL %s with '%s'\n", url, args)
+	cmd := exec.Command(args[0], args[1:]...)
 	err := cmd.Start()
 	if err != nil {
 		return fmt.Errorf("error opening URL: %w", err)
@@ -162,18 +181,18 @@ func openURL(url string) error {
 	return nil
 }
 
-// Menu is a struct that holds the command and arguments for menu
+// Menu is a struct that holds the command and arguments for menu.
 type Menu struct {
 	Command   string
 	Arguments []string
 }
 
-// prompt sets the prompt for the menu
+// prompt sets the prompt for the menu.
 func (m *Menu) prompt(s string) {
 	m.Arguments = append(m.Arguments, "-p", s)
 }
 
-// addArgs adds additional arguments to the menu
+// addArgs adds additional arguments to the menu.
 func (m *Menu) addArgs() {
 	if menuArgsFlag == "" {
 		return
@@ -183,7 +202,7 @@ func (m *Menu) addArgs() {
 	m.Arguments = append(m.Arguments, args...)
 }
 
-// handlePrompt handles the menu prompt
+// handlePrompt handles the menu prompt.
 func (m *Menu) handlePrompt() {
 	switch {
 	case openFlag:
@@ -195,7 +214,7 @@ func (m *Menu) handlePrompt() {
 	}
 }
 
-// show runs the menu command and returns the selected item
+// show runs the menu command and returns the selected item.
 func (m *Menu) show(s string) (string, error) {
 	log.Println("running menu:", m.Command, m.Arguments)
 	cmd := exec.Command(m.Command, m.Arguments...)
@@ -239,7 +258,7 @@ var menu = Menu{
 	},
 }
 
-// processInputData processes the input from stdin
+// processInputData processes the input from stdin.
 func processInputData(r io.Reader) []string {
 	var data []string
 	scanner := bufio.NewScanner(r)
@@ -247,10 +266,11 @@ func processInputData(r io.Reader) []string {
 		line := scanner.Text()
 		data = append(data, line)
 	}
+
 	return data
 }
 
-// uniqueItems removes duplicates from a slice
+// uniqueItems removes duplicates from a slice.
 func uniqueItems(input []string) []string {
 	seen := make(map[string]bool)
 	var result []string
@@ -260,18 +280,20 @@ func uniqueItems(input []string) []string {
 			result = append(result, ok)
 		}
 	}
+
 	return result
 }
 
-// addIndex adds an index to the items
+// addIndex adds an index to the items.
 func addIndex(items []string) []string {
 	for i, url := range items {
 		items[i] = fmt.Sprintf("[%d] %s", i+1, url)
 	}
+
 	return items
 }
 
-// scanItems scans the input data and returns the found match
+// scanItems scans the input data and returns the found match.
 func scanItems(data []string, find func(string) []string) []string {
 	var items []string
 	index := 1
@@ -286,15 +308,16 @@ func scanItems(data []string, find func(string) []string) []string {
 			index++
 		}
 
-		// limit the number of items
+		// limit the number of items.
 		if len(items) >= limitFlag {
 			break
 		}
 	}
+
 	return items
 }
 
-// scanURLs scans the input data and returns the found URLs
+// scanURLs scans the input data and returns the found URLs.
 func scanURLs(data []string, find func(string) []string, resultsCh chan []string) {
 	items := scanItems(data, find)
 	resultsCh <- items
@@ -311,12 +334,12 @@ func getURLsFrom(r io.Reader, finders ...func(string) []string) ([]string, error
 		limitFlag = len(data)
 	}
 
-	// Start finders
+	// Start finders.
 	for _, f := range finders {
 		go scanURLs(data, f, resultsCh)
 	}
 
-	// Wait for all finders to finish
+	// Wait for all finders to finish.
 	for range finders {
 		results = append(results, <-resultsCh...)
 	}
@@ -328,7 +351,7 @@ func getURLsFrom(r io.Reader, finders ...func(string) []string) ([]string, error
 	return results, nil
 }
 
-// selectURL runs menu and returns the selected URL
+// selectURL runs menu and returns the selected URL.
 func selectURL(urls []string) string {
 	itemsString := strings.Join(urls, "\n")
 	output, err := menu.show(itemsString)
@@ -339,6 +362,7 @@ func selectURL(urls []string) string {
 	selectedStr := strings.Trim(output, "\n")
 	if selectedStr == "" {
 		printInfo("no <URL> selected")
+
 		return ""
 	}
 
@@ -355,9 +379,6 @@ func handleURLAction(url string) {
 		logErrAndExit(action(removeIdx(url)))
 		os.Exit(0)
 	}
-
-	// No action, just output
-	fmt.Println(url)
 }
 
 func findWithCustomRegex(r io.Reader, regex string) []string {
@@ -374,12 +395,12 @@ func findItems(r io.Reader) []string {
 	var finders []func(string) []string
 
 	if !noUrlsFlag {
-		// append <find URLs> function
+		// append <find URLs> function.
 		finders = append(finders, newRegexMatcherWithPrefix(urlRegex, ""))
 	}
 
 	if emailFlag {
-		// append <find emails> function
+		// append <find emails> function.
 		finders = append(finders, newRegexMatcherWithPrefix(emailRegex, "mailto:"))
 	}
 
@@ -395,6 +416,7 @@ func handleItems(items []string) {
 	// If no action flags are passed, just print the URLs
 	if !copyFlag && !openFlag && menuArgsFlag == "" {
 		outputData(items)
+
 		return
 	}
 
@@ -414,8 +436,6 @@ func version() string {
 }
 
 func init() {
-	xdgOpen = "xdg-open"
-
 	flag.BoolVar(&copyFlag, "c", false, "copy to clipboard")
 	flag.BoolVar(&copyFlag, "copy", false, "copy to clipboard")
 
