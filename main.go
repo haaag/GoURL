@@ -259,12 +259,14 @@ var menu = Menu{
 }
 
 // processInputData processes the input from stdin.
-func processInputData(r io.Reader) []string {
+func processInputData(s *bufio.Scanner) []string {
 	var data []string
-	scanner := bufio.NewScanner(r)
-	for scanner.Scan() {
-		line := scanner.Text()
+	for s.Scan() {
+		line := s.Text()
 		data = append(data, line)
+	}
+	if err := s.Err(); err != nil {
+		logErrAndExit(err)
 	}
 
 	return data
@@ -323,10 +325,10 @@ func scanURLs(data []string, find func(string) []string, resultsCh chan []string
 	resultsCh <- items
 }
 
-func getURLsFrom(r io.Reader, finders ...func(string) []string) ([]string, error) {
+func getURLsFrom(s *bufio.Scanner, finders ...func(string) []string) ([]string, error) {
 	var (
 		resultsCh = make(chan []string)
-		data      = processInputData(r)
+		data      = processInputData(s)
 		results   = make([]string, 0)
 	)
 
@@ -381,9 +383,9 @@ func handleURLAction(url string) {
 	}
 }
 
-func findWithCustomRegex(r io.Reader, regex string) []string {
-	finder := newRegexMatcherWithPrefix(regex, "")
-	items, err := getURLsFrom(r, finder)
+func findWithCustomRegex(s *bufio.Scanner, regex string) []string {
+	matcher := newRegexMatcherWithPrefix(regex, "")
+	items, err := getURLsFrom(s, matcher)
 	if err != nil {
 		logErrAndExit(err)
 	}
@@ -391,7 +393,7 @@ func findWithCustomRegex(r io.Reader, regex string) []string {
 	return items
 }
 
-func findItems(r io.Reader) []string {
+func findItems(s *bufio.Scanner) []string {
 	var finders []func(string) []string
 
 	if !noUrlsFlag {
@@ -404,7 +406,7 @@ func findItems(r io.Reader) []string {
 		finders = append(finders, newRegexMatcherWithPrefix(emailRegex, "mailto:"))
 	}
 
-	items, err := getURLsFrom(r, finders...)
+	items, err := getURLsFrom(s, finders...)
 	if err != nil {
 		logErrAndExit(err)
 	}
@@ -478,11 +480,12 @@ func init() {
 
 func main() {
 	var items []string
+	s := bufio.NewScanner(os.Stdin)
 
 	if customRegexFlag != "" {
-		items = findWithCustomRegex(os.Stdin, customRegexFlag)
+		items = findWithCustomRegex(s, customRegexFlag)
 	} else {
-		items = findItems(os.Stdin)
+		items = findItems(s)
 	}
 
 	items = uniqueItems(items)

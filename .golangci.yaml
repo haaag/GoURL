@@ -72,6 +72,8 @@ linters-settings:
     check-blank: false
     exclude: ""
     exclude-functions: []
+  nlreturn:
+    block-size: 3
   goconst:
     min-len: 2
     min-occurrences: 3
@@ -82,7 +84,6 @@ linters-settings:
       - opinionated
       - performance
       - style
-  govet:
     enable:
       - fieldalignment
   nolintlint:
