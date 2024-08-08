@@ -19,14 +19,16 @@ import (
 	"github.com/atotto/clipboard"
 )
 
-const (
-	urlRegex   = `(((http|https|gopher|gemini|ftp|ftps|git)://|www\.)[a-zA-Z0-9.]*[:;a-zA-Z0-9./+@$&%?$\#=_~-]*)`
-	emailRegex = `\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b`
+var (
+	urlRegex = regexp.MustCompile(
+		`(((http|https|gopher|gemini|ftp|ftps|git)://|www\.)[a-zA-Z0-9.]*[:;a-zA-Z0-9./+@&%?$\#=_~-]*)`,
+	)
+	emailRegex = regexp.MustCompile(`\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b`)
 )
 
 var (
 	appName         = "gourl"
-	appVersion      = "0.1.3"
+	appVersion      = "0.1.4"
 	errNoItemsFound = errors.New("no resources found")
 )
 
@@ -99,10 +101,9 @@ func setVerboseLevel() {
 	log.SetOutput(silentLogger.Writer())
 }
 
-// newRegexMatcherWithPrefix creates a regex function.
-func newRegexMatcherWithPrefix(regex, prefix string) func(string) []string {
-	re := regexp.MustCompile(regex)
-
+// newRegexMatcherWithPrefix returns a function that prepends a prefix to URLs
+// matched by the provided regex.
+func newRegexMatcherWithPrefix(re *regexp.Regexp, prefix string) func(string) []string {
 	return func(line string) []string {
 		var (
 			matches = re.FindAllString(line, -1)
@@ -121,7 +122,7 @@ func newRegexMatcherWithPrefix(regex, prefix string) func(string) []string {
 	}
 }
 
-// removeIdx removes the index from the URL.
+// removeIdx returns the input string with the first index identifier removed.
 func removeIdx(s string) string {
 	if !indexFlag {
 		return s
@@ -337,6 +338,8 @@ func scanURLs(d *[]string, find func(string) []string, resultsCh chan []string) 
 	resultsCh <- items
 }
 
+// getURLsFrom concurrently searches for URLs using multiple finders and stores
+// the results in the provided slice.
 func getURLsFrom(d *[]string, finders ...func(string) []string) error {
 	resultsCh := make(chan []string)
 
@@ -382,6 +385,7 @@ func selectURL(d *[]string) string {
 	return selectedStr
 }
 
+// handleURLAction executes an action on a URL based on enabled flags.
 func handleURLAction(url string) {
 	actions := map[bool]func(url string) error{
 		copyFlag: copyURL,
@@ -398,11 +402,15 @@ func findWithCustomRegex(d *[]string) error {
 	if customRegexFlag == "" {
 		return nil
 	}
-	matcher := newRegexMatcherWithPrefix(customRegexFlag, "")
+
+	r := regexp.MustCompile(customRegexFlag)
+	matcher := newRegexMatcherWithPrefix(r, "")
 
 	return getURLsFrom(d, matcher)
 }
 
+// findItems finds items (urls or emails) in the provided slice based on
+// enabled flags and custom regex.
 func findItems(d *[]string) error {
 	if customRegexFlag != "" {
 		return nil
@@ -423,6 +431,7 @@ func findItems(d *[]string) error {
 	return getURLsFrom(d, finders...)
 }
 
+// handleItems processes items (urls) based on enabled flags and user input.
 func handleItems(d *[]string) {
 	// If no action flags are passed, just print the URLs
 	if !copyFlag && !openFlag && menuArgsFlag == "" {

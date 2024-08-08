@@ -12,7 +12,10 @@ INSTALL_DIR=$(PREFIX)/bin
 
 all: full
 
-full: vet build
+full: deps vet check build
+
+deps:
+	@go mod tidy
 
 build: vet ## Generate bin
 	@echo '>> Building $(NAME)'
@@ -34,6 +37,12 @@ clean: ## Clean
 	@echo '>> Cleaning up'
 	rm -rf $(GOBIN)
 	go clean -cache
+
+.PHONY: check
+check: ## Lint code with 'golangci-lint' and 'codespell'
+	@echo '>> Checking code with linters'
+	golangci-lint run -p bugs -p error
+	codespell ./main.go
 
 install: ## Install on system
 	mkdir -p $(INSTALL_DIR)
