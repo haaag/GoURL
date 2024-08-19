@@ -482,7 +482,7 @@ func init() {
 	flag.StringVar(&customRegexFlag, "regex", "", "custom regex")
 
 	flag.StringVar(&menuArgsFlag, "a", "", "additional args for dmenu")
-	flag.StringVar(&menuArgsFlag, "menu-args", "", "additional args for dmenu")
+	flag.StringVar(&menuArgsFlag, "args", "", "additional args for dmenu")
 
 	flag.BoolVar(&versionFlag, "V", false, "output version information")
 	flag.BoolVar(&versionFlag, "version", false, "output version information")
