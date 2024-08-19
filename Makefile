@@ -12,10 +12,7 @@ INSTALL_DIR=$(PREFIX)/bin
 
 all: full
 
-full: deps vet check build
-
-deps:
-	@go mod tidy
+full: vet build
 
 build: vet ## Generate bin
 	@echo '>> Building $(NAME)'
