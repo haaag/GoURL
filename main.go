@@ -29,7 +29,7 @@ var (
 var (
 	appName         = "gourl"
 	appVersion      = "0.1.4"
-	errNoItemsFound = errors.New("no resources found")
+	errNoItemsFound = errors.New("no items found")
 )
 
 var (
@@ -205,6 +205,8 @@ func (m *Menu) addArgs() {
 		return
 	}
 
+	log.Println("addArgs: ", menuArgsFlag)
+
 	args := strings.Split(menuArgsFlag, " ")
 	m.Arguments = append(m.Arguments, args...)
 }
@@ -212,7 +214,7 @@ func (m *Menu) addArgs() {
 // handlePrompt handles the menu prompt.
 func (m *Menu) handlePrompt(n int) {
 	if promptFlag != "" {
-		log.Println("setting menu prompt:", promptFlag)
+		log.Printf("handlePrompt: promptFlag: '%s'", promptFlag)
 		m.prompt(promptFlag)
 		return
 	}
@@ -227,11 +229,13 @@ func (m *Menu) handlePrompt(n int) {
 		s += "GoURLs>"
 	}
 
+	log.Printf("handlePrompt: string: '%s'", s)
+
 	m.prompt(s)
 }
 
-// show runs the menu command and returns the selected item.
-func (m *Menu) show(s string) (string, error) {
+// selection runs the menu command and returns the selected item.
+func (m *Menu) selection(s string) (string, error) {
 	log.Println("running menu:", m.Command, m.Arguments)
 	cmd := exec.Command(m.Command, m.Arguments...)
 
@@ -285,6 +289,8 @@ func processInputData(s *bufio.Scanner) *[]string {
 		logErrAndExit(err)
 	}
 
+	log.Printf("processInputData: input data: %d\n", len(data))
+
 	return &data
 }
 
@@ -299,6 +305,8 @@ func uniqueItems(d *[]string) {
 		}
 	}
 
+	log.Printf("uniqueItems: result: %d\n", len(result))
+
 	*d = result
 }
 
@@ -312,6 +320,8 @@ func addIndex(d *[]string) {
 	for i, url := range *d {
 		r[i] = fmt.Sprintf("[%d] %s", i+1, url)
 	}
+
+	log.Printf("addIndex: result: %d\n", len(r))
 
 	*d = r
 }
@@ -333,15 +343,19 @@ func scanItems(d *[]string, find func(string) []string) []string {
 
 		// limit the number of items.
 		if len(items) >= limitFlag {
+			log.Printf("scanItems: breaking after '%d' items\n", limitFlag)
 			break
 		}
 	}
+
+	log.Printf("scanItems: result: %d\n", len(items))
 
 	return items
 }
 
 // scanURLs scans the input data and returns the found URLs.
 func scanURLs(d *[]string, find func(string) []string, resultsCh chan []string) {
+	log.Println("scanURLs: scanning...")
 	items := scanItems(d, find)
 	resultsCh <- items
 }
@@ -367,8 +381,11 @@ func getURLsFrom(d *[]string, finders ...func(string) []string) error {
 	}
 
 	if len(results) == 0 {
+		log.Println("getURLsFrom: no items found")
 		return errNoItemsFound
 	}
+
+	log.Printf("getURLsFrom: result: %d\n", len(results))
 
 	*d = results
 
@@ -378,7 +395,7 @@ func getURLsFrom(d *[]string, finders ...func(string) []string) error {
 // selectURL runs menu and returns the selected URL.
 func selectURL(d *[]string) string {
 	itemsString := strings.Join(*d, "\n")
-	output, err := menu.show(itemsString)
+	output, err := menu.selection(itemsString)
 	if err != nil {
 		return ""
 	}
@@ -386,7 +403,6 @@ func selectURL(d *[]string) string {
 	selectedStr := strings.Trim(output, "\n")
 	if selectedStr == "" {
 		info("no <item> selected")
-
 		return ""
 	}
 
@@ -406,10 +422,13 @@ func handleURLAction(url string) {
 	}
 }
 
+// findWithCustomRegex finds URLs based on the custom regex.
 func findWithCustomRegex(d *[]string) error {
 	if customRegexFlag == "" {
 		return nil
 	}
+
+	log.Printf("findWithCustomRegex: regex: '%s'\n", customRegexFlag)
 
 	r := regexp.MustCompile(customRegexFlag)
 	matcher := newRegexMatcherWithPrefix(r, "")
@@ -436,13 +455,16 @@ func findItems(d *[]string) error {
 		finders = append(finders, newRegexMatcherWithPrefix(emailRegex, "mailto:"))
 	}
 
+	log.Printf("findItems: finders functions: %d\n", len(finders))
+
 	return getURLsFrom(d, finders...)
 }
 
 // handleItems processes items (urls) based on enabled flags and user input.
 func handleItems(d *[]string) {
-	// If no action flags are passed, just print the URLs
+	// If no action flags are passed, just print the items found.
 	if !copyFlag && !openFlag && menuArgsFlag == "" {
+		log.Println("no action flags passed, printing items:")
 		outputData(d)
 
 		return
