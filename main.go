@@ -39,11 +39,11 @@ var (
 	indexFlag       bool
 	limitFlag       int
 	menuArgsFlag    string
-	noUrlsFlag      bool
 	openFlag        bool
+	promptFlag      string
+	urlFlag         bool
 	verboseFlag     bool
 	versionFlag     bool
-	promptFlag      string
 )
 
 func usage() {
@@ -56,7 +56,7 @@ Usage:
 Options:
   -c, --copy        Copy to clipboard
   -o, --open        Open with xdg-open
-  -n, --no-urls     Ignore URLs
+  -u, --urls        Extract URLs (default: true)
   -e, --email       Extract emails (prefix: "mailto:")
   -E, --regex       Custom regex search
   -l, --limit       Limit number of items
@@ -329,17 +329,13 @@ func addIndex(d *[]string) {
 // scanItems scans the input data and returns the found match.
 func scanItems(d *[]string, find func(string) []string) []string {
 	var items []string
-	index := 1
 	for _, line := range *d {
 		found := find(line)
 		if len(found) == 0 {
 			continue
 		}
 
-		for _, item := range found {
-			items = append(items, item)
-			index++
-		}
+		items = append(items, found...)
 
 		// limit the number of items.
 		if len(items) >= limitFlag {
@@ -445,7 +441,10 @@ func findItems(d *[]string) error {
 
 	var finders []func(string) []string
 
-	if !noUrlsFlag {
+	log.Printf("findItems: urlFlag: %t\n", urlFlag)
+	log.Printf("findItems: emailFlag: %t\n", emailFlag)
+
+	if urlFlag {
 		// append <find URLs> function.
 		finders = append(finders, newRegexMatcherWithPrefix(urlRegex, ""))
 	}
@@ -496,8 +495,9 @@ func init() {
 
 	flag.BoolVar(&emailFlag, "e", false, "extract emails")
 	flag.BoolVar(&emailFlag, "email", false, "extract emails")
-	flag.BoolVar(&noUrlsFlag, "n", false, "ignore URLs")
-	flag.BoolVar(&noUrlsFlag, "no-urls", false, "ignore URLs")
+
+	flag.BoolVar(&urlFlag, "u", true, "extract URLs")
+	flag.BoolVar(&urlFlag, "url", true, "extract URLs")
 
 	flag.IntVar(&limitFlag, "l", 0, "limit number of URLs")
 	flag.IntVar(&limitFlag, "limit", 0, "limit number of URLs")

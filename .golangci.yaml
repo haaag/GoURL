@@ -14,7 +14,7 @@ linters:
     - errcheck
     - errname
     - errorlint
-    - exportloopref
+    - copyloopvar
     - forcetypeassert
     - funlen
     - goconst
