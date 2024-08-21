@@ -43,6 +43,7 @@ var (
 	openFlag        bool
 	verboseFlag     bool
 	versionFlag     bool
+	promptFlag      string
 )
 
 func usage() {
@@ -60,6 +61,7 @@ Options:
   -E, --regex       Custom regex search
   -l, --limit       Limit number of items
   -i, --index       Add index to URLs found
+  -p, --prompt      Prompt for dmenu
   -a, --args        Args for dmenu
   -V, --version     Output version information
   -v, --verbose     Verbose mode
@@ -209,6 +211,12 @@ func (m *Menu) addArgs() {
 
 // handlePrompt handles the menu prompt.
 func (m *Menu) handlePrompt(n int) {
+	if promptFlag != "" {
+		log.Println("setting menu prompt:", promptFlag)
+		m.prompt(promptFlag)
+		return
+	}
+
 	s := fmt.Sprintf("%d ", n)
 	switch {
 	case openFlag:
@@ -483,6 +491,9 @@ func init() {
 
 	flag.StringVar(&menuArgsFlag, "a", "", "additional args for dmenu")
 	flag.StringVar(&menuArgsFlag, "args", "", "additional args for dmenu")
+
+	flag.StringVar(&promptFlag, "p", "", "prompt for dmenu")
+	flag.StringVar(&promptFlag, "prompt", "", "prompt for dmenu")
 
 	flag.BoolVar(&versionFlag, "V", false, "output version information")
 	flag.BoolVar(&versionFlag, "version", false, "output version information")
