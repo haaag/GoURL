@@ -104,6 +104,7 @@ The flag `-E` can be use for `custom regex`, like in `grep`.
 ```bash
 # list existing remotes
 git remote -v | gourl -E '((git|ssh|http(s)?)|(git@[\w\.]+))(:(//)?)([\w\.@\:/\-~]+)(\.git)(/)?'
+# git@github.com:xxxxx/zzzzz.git
 ```
 
 ### ⭐ Related projects

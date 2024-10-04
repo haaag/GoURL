@@ -28,7 +28,7 @@ var (
 
 var (
 	appName         = "gourl"
-	appVersion      = "0.1.4"
+	appVersion      = "0.1.5"
 	errNoItemsFound = errors.New("no items found")
 )
 
