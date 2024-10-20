@@ -28,7 +28,7 @@ var (
 
 var (
 	appName         = "gourl"
-	appVersion      = "0.1.5"
+	appVersion      = "0.1.6"
 	errNoItemsFound = errors.New("no items found")
 )
 
@@ -39,6 +39,7 @@ var (
 	indexFlag       bool
 	limitFlag       int
 	menuArgsFlag    string
+	printOut        bool
 	openFlag        bool
 	promptFlag      string
 	urlFlag         bool
@@ -183,6 +184,15 @@ func openURL(url string) error {
 	err := cmd.Start()
 	if err != nil {
 		return fmt.Errorf("error opening URL: %w", err)
+	}
+
+	return nil
+}
+
+// outputURL prints URL to STDOUT.
+func outputURL(url string) error {
+	if _, err := fmt.Fprintln(os.Stdout, url); err != nil {
+		logErrAndExit(err)
 	}
 
 	return nil
@@ -410,6 +420,7 @@ func handleURLAction(url string) {
 	actions := map[bool]func(url string) error{
 		copyFlag: copyURL,
 		openFlag: openURL,
+		printOut: outputURL,
 	}
 
 	if action, ok := actions[true]; ok {
@@ -461,8 +472,9 @@ func findItems(d *[]string) error {
 
 // handleItems processes items (urls) based on enabled flags and user input.
 func handleItems(d *[]string) {
+	printOut = !copyFlag && !openFlag
 	// If no action flags are passed, just print the items found.
-	if !copyFlag && !openFlag && menuArgsFlag == "" {
+	if printOut && menuArgsFlag == "" {
 		log.Println("no action flags passed, printing items:")
 		outputData(d)
 
