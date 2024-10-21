@@ -31,9 +31,10 @@ Without flags, prints `URLs` found to standard output `(STDOUT)`, **_you can pip
 
 ### ⚡️Requirements
 
-- [Go](https://golang.org/) `v1.21.3` or higher
+- [Go](https://golang.org/) >= `v1.21.3`
+- [dmenu](https://tools.suckless.org/dmenu/) <sub>`optional`</sub>
 
-### 📦 Build
+### 🧰 Build
 
 ```bash
 # clone the repo
@@ -43,7 +44,7 @@ $ git clone 'https://github.com/haaag/GoURL' && cd GoURL
 $ make
 ```
 
-<sub>Binary can be found in `GoURL/bin`.</sub>
+**Binary can be found in `GoURL/bin/gourl`.**
 
 ### 📦 Installation
 
@@ -72,11 +73,12 @@ Usage:
 Options:
   -c, --copy        Copy to clipboard
   -o, --open        Open with xdg-open
-  -n, --no-urls     Ignore URLs
-  -e, --email       Extract emails
+  -u, --urls        Extract URLs (default: true)
+  -e, --email       Extract emails (prefix: "mailto:")
   -E, --regex       Custom regex search
   -l, --limit       Limit number of items
   -i, --index       Add index to URLs found
+  -p, --prompt      Prompt for dmenu
   -a, --args        Args for dmenu
   -V, --version     Output version information
   -v, --verbose     Verbose mode
@@ -87,7 +89,7 @@ $ gourl -c < urls.txt
 $ cat urls.txt | gourl -c
 
 # extract only emails
-$ gourl -n -e --limit 1 < data.txt
+$ gourl --url=false --email --limit 1 < data.txt
 # example@email.com
 
 # with index
