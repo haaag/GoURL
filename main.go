@@ -28,7 +28,7 @@ var (
 
 var (
 	appName         = "gourl"
-	appVersion      = "0.1.6"
+	appVersion      = "0.1.7"
 	errNoItemsFound = errors.New("no items found")
 )
 
@@ -36,6 +36,7 @@ var (
 	copyFlag        bool
 	customRegexFlag string
 	emailFlag       bool
+	exeFlag         string
 	indexFlag       bool
 	limitFlag       int
 	menuArgsFlag    string
@@ -59,6 +60,7 @@ Options:
   -o, --open        Open with xdg-open
   -u, --urls        Extract URLs (default: true)
   -e, --email       Extract emails (prefix: "mailto:")
+  -x, --exe         Execute command with all search results as arguments
   -E, --regex       Custom regex search
   -l, --limit       Limit number of items
   -i, --index       Add index to URLs found
@@ -189,6 +191,18 @@ func openURL(url string) error {
 	return nil
 }
 
+// execURL executes the selected URL with the provided command.
+func execURL(url string) error {
+	log.Printf("executing URL %s with '%s'\n", url, exeFlag)
+	cmd := exec.Command(exeFlag, url)
+	err := cmd.Start()
+	if err != nil {
+		return fmt.Errorf("%w", err)
+	}
+
+	return nil
+}
+
 // outputURL prints URL to STDOUT.
 func outputURL(url string) error {
 	if _, err := fmt.Fprintln(os.Stdout, url); err != nil {
@@ -233,6 +247,8 @@ func (m *Menu) handlePrompt(n int) {
 	switch {
 	case openFlag:
 		s += "Open>"
+	case exeFlag != "":
+		s += "Exec>"
 	case copyFlag:
 		s += "Copy>"
 	default:
@@ -418,9 +434,10 @@ func selectURL(d *[]string) string {
 // handleURLAction executes an action on a URL based on enabled flags.
 func handleURLAction(url string) {
 	actions := map[bool]func(url string) error{
-		copyFlag: copyURL,
-		openFlag: openURL,
-		printOut: outputURL,
+		copyFlag:      copyURL,
+		openFlag:      openURL,
+		exeFlag != "": execURL,
+		printOut:      outputURL,
 	}
 
 	if action, ok := actions[true]; ok {
@@ -472,9 +489,9 @@ func findItems(d *[]string) error {
 
 // handleItems processes items (urls) based on enabled flags and user input.
 func handleItems(d *[]string) {
-	printOut = !copyFlag && !openFlag
+	printOut = !copyFlag && !openFlag && exeFlag == ""
 	// If no action flags are passed, just print the items found.
-	if printOut && menuArgsFlag == "" {
+	if printOut && menuArgsFlag == "" && exeFlag == "" {
 		log.Println("no action flags passed, printing items:")
 		outputData(d)
 
@@ -504,6 +521,9 @@ func init() {
 
 	flag.BoolVar(&openFlag, "o", false, "open in browser")
 	flag.BoolVar(&openFlag, "open", false, "open in browser")
+
+	flag.StringVar(&exeFlag, "x", "", "execute command with all search results as arguments")
+	flag.StringVar(&exeFlag, "exec", "", "execute command with all search results as arguments")
 
 	flag.BoolVar(&emailFlag, "e", false, "extract emails")
 	flag.BoolVar(&emailFlag, "email", false, "extract emails")

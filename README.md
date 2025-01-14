@@ -4,7 +4,8 @@
 <br>
 <br>
 
-[![MadeWithGo](https://img.shields.io/badge/Made%20with-Go-1f425f.svg)](https://go.dev/)
+![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/haaag/gourl)
+![Linux](https://img.shields.io/badge/-Linux-grey?logo=linux)
 
 </div>
 
@@ -14,7 +15,7 @@ You can use any **terminal** that supports piping visible text to external progr
 
 I'm using [st](https://st.suckless.org/) terminal with [externalpipe](https://st.suckless.org/patches/externalpipe/) patch to `read/pipe` current visible text to this program.
 
-Using the option `-c, --copy` or `-o, --open` will display the items in [dmenu](https://tools.suckless.org/dmenu/)
+Using the option `-c, --copy`, `-o, --open` or `-x, --exec` will display the items in [dmenu](https://tools.suckless.org/dmenu/)
 
 Without flags, prints `URLs` found to standard output `(STDOUT)`, **_you can pipe it to your preferred menu or launcher_**.
 
@@ -23,9 +24,10 @@ Without flags, prints `URLs` found to standard output `(STDOUT)`, **_you can pip
 - Extract URLs from `STDIN`
 - Choose items with `dmenu`
 - Ignore `duplicates`
-- Copy to clipboard
-- Open with `xdg-open`
-- Custom regex search
+- `Execute command` with selected items
+- `Copy` to clipboard
+- `Open` with `xdg-open`
+- Custom `regex` search
 - Add `index` to URLs found
 - Limit number of items
 
@@ -44,7 +46,7 @@ $ git clone 'https://github.com/haaag/GoURL' && cd GoURL
 $ make
 ```
 
-**Binary can be found in `GoURL/bin/gourl`.**
+**Binary can be found in `GoURL/bin/gourl`**
 
 ### 📦 Installation
 
@@ -59,7 +61,10 @@ $ sudo make install
 $ ln -sf $PWD/bin/gourl ~/.local/bin/
 ```
 
-<sub>Uninstall from system, use <b>sudo make uninstall</b> or remove symlink with `rm ~/.local/bin/gourl`</sub>
+#### 🗑️ Uninstall
+
+- <b>System</b>: use `sudo make uninstall`
+- <b>User</b>: remove symlink with `rm ~/.local/bin/gourl`
 
 ### 🚀 Usage
 
@@ -76,6 +81,7 @@ Options:
   -u, --urls        Extract URLs (default: true)
   -e, --email       Extract emails (prefix: "mailto:")
   -E, --regex       Custom regex search
+  -x, --exe         Execute command with all search results as arguments
   -l, --limit       Limit number of items
   -i, --index       Add index to URLs found
   -p, --prompt      Prompt for dmenu
